@@ -8,7 +8,7 @@ import (
 )
 
 // Listens for messages.
-func listener() {
+func listener(s *Statser) {
 	log.Printf("TCP listener started: %s:%s\n",
 		options.addr,
 		options.port)
@@ -24,11 +24,11 @@ func listener() {
 			log.Printf("Listener down: %s\n", err)
 			continue
 		}
-		go connectionHandler(conn)
+		go connectionHandler(conn, s)
 	}
 }
 
-func connectionHandler(c net.Conn) {
+func connectionHandler(c net.Conn, s *Statser) {
 	flushTimeout := time.Tick(time.Duration(config.flushTimeout) * time.Second)
 	messages := []string{}
 
@@ -50,6 +50,9 @@ func connectionHandler(c net.Conn) {
 		}
 
 		m := inbound.Text()
+		// Need to batch these updates; will degrade
+		// under thousands of connections.
+		s.IncrSent(1)
 
 		// Drop message and respond if the incoming queue is at capacity.
 		if len(messageIncomingQueue) >= options.queuecap {

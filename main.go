@@ -1,4 +1,3 @@
-// 2014, 2015 Jamie Alquiza
 package main
 
 import (
@@ -66,6 +65,8 @@ func main() {
 	}
 
 	<- ready
-	go listener()
+	sentCnt := NewStatser()
+	go statsTracker(sentCnt)
+	go listener(sentCnt)
 	runControl()
 }
