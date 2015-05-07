@@ -62,6 +62,7 @@ func main() {
 
 	if options.console {
 		go outputConsole(messageIncomingQueue)
+		ready <- true
 	} else {
 		go outputGraphite(messageIncomingQueue, ready)
 	}
