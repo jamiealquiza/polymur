@@ -1,25 +1,25 @@
 package main
 
 import (
-	"net"
-	"sync"
 	"fmt"
 	"log"
+	"net"
 	"strings"
+	"sync"
 	"time"
 )
 
 type connection struct {
 	sync.Mutex
 	alive map[int]net.Conn
-	id int
+	id    int
 }
 
 var connections = connection{alive: make(map[int]net.Conn)}
 
 func (c connection) NextId() int {
 	c.Lock()
-	c.id = c.id+1
+	c.id = c.id + 1
 	c.Unlock()
 	return c.id
 }
@@ -34,9 +34,9 @@ func outputGraphite(q <-chan []string, ready chan bool) {
 
 	destinations := strings.Split(options.destinations, ",")
 
-	tryConnections:
+tryConnections:
 	for i, d := range destinations {
-		conn, err := net.DialTimeout("tcp", d, time.Duration(5 * time.Second))
+		conn, err := net.DialTimeout("tcp", d, time.Duration(5*time.Second))
 		if err != nil {
 			log.Println(err)
 		} else {

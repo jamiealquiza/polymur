@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 )
 
@@ -12,10 +13,10 @@ var (
 	messageIncomingQueue = make(chan []string, options.queuecap)
 
 	options struct {
-		addr     string
-		port     string
-		queuecap int
-		console  bool
+		addr         string
+		port         string
+		queuecap     int
+		console      bool
 		destinations string
 	}
 
@@ -44,8 +45,9 @@ func init() {
 
 	config.batchSize = 30
 	config.flushTimeout = 5
-}
 
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
 
 // Handles signal events.
 func runControl() {
@@ -64,7 +66,7 @@ func main() {
 		go outputGraphite(messageIncomingQueue, ready)
 	}
 
-	<- ready
+	<-ready
 	sentCnt := NewStatser()
 	go statsTracker(sentCnt)
 	go listener(sentCnt)

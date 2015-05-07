@@ -1,10 +1,10 @@
 package main
 
 import (
-	"net"
-	"log"
-	"time"
 	"bufio"
+	"log"
+	"net"
+	"time"
 )
 
 // Listens for messages.
