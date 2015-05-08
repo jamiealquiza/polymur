@@ -20,6 +20,7 @@ var (
 		queuecap     int
 		console      bool
 		destinations string
+		metricsFlush int
 	}
 
 	// Internals, may be updated dynamically by the app.
@@ -37,6 +38,7 @@ func init() {
 	flag.IntVar(&options.queuecap, "queue-cap", 1000, "In-flight message queue capacity")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
+	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
 	flag.Parse()
 
 	if options.destinations == "" {
@@ -73,6 +75,9 @@ func main() {
 	sentCnt := NewStatser()
 	go statsTracker(sentCnt)
 	go listener(sentCnt)
-	go runstats.Start("localhost", "6040", nil)
+	if options.metricsFlush > 0 {
+		go runstats.WriteGraphite(messageIncomingQueue, options.metricsFlush)
+	}
+	go runstats.Start("localhost", "2020", nil)
 	runControl()
 }

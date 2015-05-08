@@ -6,6 +6,7 @@ import (
 	"net"
 	"fmt"
 	"log"
+	"os"
 	"io"
 	"strings"
 	"time"
@@ -14,6 +15,25 @@ import (
 var (
 	startTime = time.Now()
 )
+
+func WriteGraphite(c chan[]*string, i int) {
+	interval := time.Tick(time.Duration(i) * time.Second)
+	hostname, _ := os.Hostname()
+	for {
+		<- interval
+		now := time.Now()
+		ts := int64(now.Unix())
+		metrics := []*string{}
+		stats := buildStats(nil)
+
+		for k, v := range stats["runtime-meminfo"] {
+			value := fmt.Sprintf("%s.graphite-multiplier.runtime.%s %d %d", hostname, k, v, ts)
+			metrics = append(metrics, &value)
+		}
+
+		c <- metrics
+	}
+}
 
 func Start(address, port string, serviceInfo map[string]interface{}) {
 	log.Printf("Runstats started: %s:%s\n",
@@ -32,7 +52,7 @@ func Start(address, port string, serviceInfo map[string]interface{}) {
 			log.Printf("Listener down: %s\n", err)
 			continue
 		}
-		go reqHandler(conn, serviceInfo)
+		reqHandler(conn, serviceInfo)
 	}
 }
 
@@ -48,7 +68,15 @@ func reqHandler(conn net.Conn, serviceInfo map[string]interface{}) {
 	switch req {
 	case "stats":
 		r := buildStats(serviceInfo)
-		conn.Write(r)
+
+		response, err := json.MarshalIndent(r, "", "  ")
+		if err != nil {
+			log.Printf("Error parsing: %s", err)
+		}
+		// Append LF.
+		response = append(response, 10)
+
+		conn.Write(response)
 	default:
 		m := fmt.Sprintf("Not a command: %s\n", req)
 		conn.Write([]byte(m))
@@ -56,7 +84,7 @@ func reqHandler(conn net.Conn, serviceInfo map[string]interface{}) {
 }
 
 // Generate stats response.
-func buildStats(serviceInfo map[string]interface{}) []byte {
+func buildStats(serviceInfo map[string]interface{}) map[string]map[string]interface{} {
 
 	// Object that will carry all response info.
 	stats := make(map[string]map[string]interface{})
@@ -103,11 +131,5 @@ func buildStats(serviceInfo map[string]interface{}) []byte {
 	stats["runtime-meminfo"]["PauseTotalNs"] = mem.PauseTotalNs
 	stats["runtime-meminfo"]["NumGC"] = mem.NumGC
 
-	response, err := json.MarshalIndent(stats, "", "  ")
-	if err != nil {
-		log.Printf("Error parsing: %s", err)
-	}
-	// Append LF.
-	response = append(response, 10)
-	return response
+	return stats
 }
