@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"runtime"
 	"syscall"
+
+	"github.com/jamiealquiza/graphite-multiplier/runstats"
 )
 
 var (
@@ -71,5 +73,6 @@ func main() {
 	sentCnt := NewStatser()
 	go statsTracker(sentCnt)
 	go listener(sentCnt)
+	go runstats.Start("localhost", "6040", nil)
 	runControl()
 }
