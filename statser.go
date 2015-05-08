@@ -34,18 +34,17 @@ func (s *Statser) FetchSent() int64 {
 func statsTracker(s *Statser) {
 	tick := time.Tick(5 * time.Second)
 	var currCnt, lastCnt int64
+	
 	for {
-		select {
-		case <-tick:
-			lastCnt = currCnt
-			currCnt = s.FetchSent()
-			deltaCnt := currCnt - lastCnt
-			if deltaCnt > 0 {
-				log.Printf("Last 5s: Received %d messages | Avg: %.2f messages/sec. | Inbound queue length: %d\n",
-					deltaCnt,
-					float64(deltaCnt)/5,
-					len(messageIncomingQueue))
-			}
+		<-tick
+		lastCnt = currCnt
+		currCnt = s.FetchSent()
+		deltaCnt := currCnt - lastCnt
+		if deltaCnt > 0 {
+			log.Printf("Last 5s: Received %d messages | Avg: %.2f messages/sec. | Inbound queue length: %d\n",
+				deltaCnt,
+				float64(deltaCnt)/5,
+				len(messageIncomingQueue))
 		}
 	}
 }
