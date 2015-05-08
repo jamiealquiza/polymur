@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+func init() {
+	config.batchSize = 30
+	config.flushTimeout = 5
+}
+
 // Listens for messages.
 func listener(s *Statser) {
 	log.Printf("TCP listener started: %s:%s\n",

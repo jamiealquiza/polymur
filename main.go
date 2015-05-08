@@ -35,7 +35,7 @@ var (
 func init() {
 	flag.StringVar(&options.addr, "listen-addr", "localhost", "bind address")
 	flag.StringVar(&options.port, "listen-port", "2005", "bind port")
-	flag.IntVar(&options.queuecap, "queue-cap", 1000, "In-flight message queue capacity")
+	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
@@ -46,9 +46,6 @@ func init() {
 	}
 
 	messageIncomingQueue = make(chan []*string, options.queuecap)
-
-	config.batchSize = 30
-	config.flushTimeout = 5
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
