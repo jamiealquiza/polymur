@@ -24,13 +24,16 @@ func (c connection) NextId() int {
 	return c.id
 }
 
-func send(m string) {
-	for _, conn := range connections.alive {
-		fmt.Fprintln(conn, m)
+func send(m *string) {
+	for i, conn := range connections.alive {
+		_, err := fmt.Fprintln(conn, *m)
+		if err != nil {
+			log.Printf("Destination %s error: %s\n", i, err)
+		}
 	}
 }
 
-func outputGraphite(q <-chan []string, ready chan bool) {
+func outputGraphite(q <-chan []*string, ready chan bool) {
 
 	destinations := strings.Split(options.destinations, ",")
 

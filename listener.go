@@ -30,7 +30,7 @@ func listener(s *Statser) {
 
 func connectionHandler(c net.Conn, s *Statser) {
 	flushTimeout := time.Tick(time.Duration(config.flushTimeout) * time.Second)
-	messages := []string{}
+	messages := []*string{}
 
 	inbound := bufio.NewScanner(c)
 	defer c.Close()
@@ -42,9 +42,9 @@ func connectionHandler(c net.Conn, s *Statser) {
 		case <-flushTimeout:
 			if len(messages) > 0 {
 				messageIncomingQueue <- messages
-				messages = []string{}
+				messages = []*string{}
 			}
-			messages = []string{}
+			messages = []*string{}
 		default:
 			break
 		}
@@ -64,12 +64,12 @@ func connectionHandler(c net.Conn, s *Statser) {
 		// If this puts us at the batchSize threshold, enqueue
 		// into the messageIncomingQueue.
 		if len(messages)+1 >= config.batchSize {
-			messages = append(messages, m)
+			messages = append(messages, &m)
 			messageIncomingQueue <- messages
-			messages = []string{}
+			messages = []*string{}
 		} else {
 			// Otherwise, just append message to current batch.
-			messages = append(messages, m)
+			messages = append(messages, &m)
 		}
 
 	}

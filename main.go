@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	messageIncomingQueue = make(chan []string, options.queuecap)
+	messageIncomingQueue = make(chan []*string, options.queuecap)
 
 	options struct {
 		addr         string
@@ -41,7 +41,7 @@ func init() {
 		log.Fatal("Destinations must be set")
 	}
 
-	messageIncomingQueue = make(chan []string, options.queuecap)
+	messageIncomingQueue = make(chan []*string, options.queuecap)
 
 	config.batchSize = 30
 	config.flushTimeout = 5
