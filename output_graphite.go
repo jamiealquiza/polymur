@@ -15,9 +15,9 @@ type connection struct {
 	id    int
 }
 
-var connections = connection{alive: make(map[int]net.Conn)}
+var connections = &connection{alive: make(map[int]net.Conn)}
 
-func (c connection) NextId() int {
+func (c *connection) NextId() int {
 	c.Lock()
 	c.id = c.id + 1
 	c.Unlock()
