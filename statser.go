@@ -46,5 +46,16 @@ func statsTracker(s *Statser) {
 				float64(deltaCnt)/5,
 				len(messageIncomingQueue))
 		}
+
+		for dest, outboundQueue := range pool.Connections {
+			currLen := len(outboundQueue)
+			switch {
+				case currLen == options.queuecap:
+					log.Printf("Destination %s queue is at capacity (%d) - further messages will be dropped", dest, currLen)
+				case currLen > 0:
+					log.Printf("Destination %s queue length: %d\n", dest, currLen)
+			}
+		}
+
 	}
 }

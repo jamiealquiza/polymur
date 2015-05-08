@@ -14,7 +14,7 @@ func init() {
 
 // Listens for messages.
 func listener(s *Statser) {
-	log.Printf("TCP listener started: %s:%s\n",
+	log.Printf("Metrics listener started: %s:%s\n",
 		options.addr,
 		options.port)
 	server, err := net.Listen("tcp", options.addr+":"+options.port)
