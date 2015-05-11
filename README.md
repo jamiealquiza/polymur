@@ -1,6 +1,6 @@
 # polymur
 
-Mirrors Graphite metrics to multiple destinations
+Total work in progress.
 
 ### Overview
 
