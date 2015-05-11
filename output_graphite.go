@@ -50,6 +50,7 @@ func establishConn(addr string) net.Conn {
 
 func connectionWriter(addr string, q <- chan *string) {
 	conn := establishConn(addr)
+	defer conn.Close()
 
 	for m := range q {
 		retry:
@@ -78,7 +79,7 @@ func outputGraphite(q <-chan []*string, cap int, ready chan bool) {
 		go connectionWriter(addr, queue)
 	}
 
-	// In case we want any initializtion to block.
+	// In case we want any initialization to block.
 	ready <- true
 
 	for messages := range q {
