@@ -58,20 +58,20 @@ func broadcast(messages []*string) {
 
 func balanceRR(messages []*string) {
 	// Fetch current the RR ID.
-	i := pool.RRCurrent
+	pos := pool.RRCurrent
 
 	for _, m := range messages {
 		// Needs logic to retry next.
 		select {
-		case pool.RRList[i] <- m:
-			i = pool.nextRR(i)
+		case pool.RRList[pos] <- m:
+			pos = pool.nextRR(pos)
 		default:
-			i = pool.nextRR(i)
+			pos = pool.nextRR(pos)
 		}
 	}
 
 	// Commit the next RR ID to continue with.
-	pool.commitRR(i)
+	pool.commitRR(pos)
 }
 
 func establishConn(addr string) net.Conn {
@@ -131,6 +131,6 @@ func outputGraphite(q <-chan []*string, cap int, ready chan bool) {
 	ready <- true
 
 	for messages := range q {
-		balanceRR(messages)
+		broadcast(messages)
 	}
 }
