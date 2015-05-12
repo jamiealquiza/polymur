@@ -28,6 +28,7 @@ Note: memory footprint for in-flight messages will be roughly:
 Usage of ./polymur:
   -console-out=false: Dump output to console
   -destinations="": Comma-delimited list of ip:port destinations
+  -distribution="broadcast": Destination distribution methods: broadcast, balance-rr
   -listen-addr="localhost": bind address
   -listen-port="2005": bind port
   -metrics-flush=0: Graphite flush interval for runtime metrics (0 is disabled)
