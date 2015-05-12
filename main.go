@@ -45,7 +45,7 @@ func init() {
 		log.Fatal("Destinations must be set")
 	}
 
-	messageIncomingQueue = make(chan []*string, 4096)
+	messageIncomingQueue = make(chan []*string, 512)
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }

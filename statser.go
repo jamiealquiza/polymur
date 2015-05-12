@@ -19,12 +19,12 @@ func (s *Statser) init() {
 	s.value <- 0
 }
 
-func (s *Statser) IncrSent(v int64) {
+func (s *Statser) IncrRecv(v int64) {
 	i := <-s.value
 	s.value <- i + v
 }
 
-func (s *Statser) FetchSent() int64 {
+func (s *Statser) FetchRecv() int64 {
 	i := <-s.value
 	s.value <- i
 	return i
@@ -38,7 +38,7 @@ func statsTracker(s *Statser) {
 	for {
 		<-tick
 		lastCnt = currCnt
-		currCnt = s.FetchSent()
+		currCnt = s.FetchRecv()
 		deltaCnt := currCnt - lastCnt
 		if deltaCnt > 0 {
 			log.Printf("Last 5s: Received %d data points | Avg: %.2f/sec. | Inbound queue length: %d\n",

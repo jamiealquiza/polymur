@@ -55,9 +55,7 @@ func connectionHandler(c net.Conn, s *Statser) {
 		}
 
 		m := inbound.Text()
-		// Need to batch these updates; will degrade
-		// under thousands of connections.
-		s.IncrSent(1)
+		s.IncrRecv(1)
 
 		// Drop message and respond if the incoming queue is at capacity.
 		if len(messageIncomingQueue) >= options.queuecap {
