@@ -18,8 +18,12 @@ type Pool struct {
 
 var (
 	pool = &Pool{Connections: make(map[string]chan *string)}
-)
 
+	distribution = map[string]func([]*string){
+		"broadcast": broadcast,
+		"balance-rr": balanceRR,
+		}
+)
 
 func broadcast(messages []*string) {
 	// For each message in the batch,
@@ -42,18 +46,20 @@ func balanceRR(messages []*string) {
 	pos := pool.RRCurrent
 
 	for _, m := range messages {
-		// Needs logic to retry next.
+		retry:
 		select {
 		case pool.RRList[pos] <- m:
 			pos = pool.nextRR(pos)
 		default:
 			pos = pool.nextRR(pos)
+			goto retry
 		}
 	}
 
 	// Commit the next RR ID to continue with.
 	pool.commitRR(pos)
 }
+
 
 func (p *Pool) commitRR(pos int) {
 	p.Lock()
@@ -73,6 +79,16 @@ func (p *Pool) nextRR(pos int) int {
 	}
 
 	return next
+}
+
+func reEnqueue() {
+	// If a connection is removed from the pool,
+	// redistribute it's queue to healthy nodes.
+}
+
+func healthPoller() {
+	// Actively track connection health
+	// and pull/add from pools.
 }
 
 func establishConn(addr string) net.Conn {
@@ -132,6 +148,6 @@ func outputGraphite(q <-chan []*string, cap int, ready chan bool) {
 	ready <- true
 
 	for messages := range q {
-		broadcast(messages)
+		distribution[options.distribution](messages)
 	}
 }
