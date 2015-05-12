@@ -38,6 +38,7 @@ func statsTracker(s *Statser) {
 	for {
 		<-tick
 
+		// Inbound rates.
 		lastCnt = currCnt
 		currCnt = s.FetchRecv()
 		deltaCnt := currCnt - lastCnt
@@ -48,7 +49,9 @@ func statsTracker(s *Statser) {
 				len(messageIncomingQueue))
 		}
 
-		for dest, outboundQueue := range pool.Connections {
+		// Outbound queues.
+		pool.Lock()
+		for dest, outboundQueue := range pool.Conns {
 			currLen := len(outboundQueue)
 			switch {
 			case currLen == options.queuecap:
@@ -57,7 +60,9 @@ func statsTracker(s *Statser) {
 				log.Printf("Destination %s queue length: %d\n", dest, currLen)
 			}
 		}
+		pool.Unlock()
 
+		// Misc. internal queues.
 		if l := len(failedMessages); l > 0 {
 			log.Printf("Failed message queue length: %d\n", l)
 		}

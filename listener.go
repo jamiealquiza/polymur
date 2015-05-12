@@ -22,6 +22,8 @@ func listener(s *Statser) {
 		log.Fatalf("Listener error: %s\n", err)
 	}
 	defer server.Close()
+
+
 	// Connection handler loop.
 	for {
 		conn, err := server.Accept()

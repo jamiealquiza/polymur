@@ -67,7 +67,7 @@ func main() {
 		go outputConsole(messageIncomingQueue)
 		ready <- true
 	} else {
-		go outputGraphite(messageIncomingQueue, options.queuecap, ready)
+		go outputGraphite(messageIncomingQueue, ready)
 	}
 
 	<-ready
