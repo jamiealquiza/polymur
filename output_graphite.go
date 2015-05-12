@@ -20,25 +20,6 @@ var (
 	pool = &Pool{Connections: make(map[string]chan *string)}
 )
 
-func (p *Pool) commitRR(pos int) {
-	p.Lock()
-	defer p.Unlock()
-	p.RRCurrent = pos
-}
-
-func (p *Pool) nextRR(pos int) int {
-	max := len(p.RRList) - 1
-	var next int
-
-	if pos == max {
-		next = 0
-	} else {
-		pos++
-		next = pos
-	}
-
-	return next
-}
 
 func broadcast(messages []*string) {
 	// For each message in the batch,
@@ -72,6 +53,26 @@ func balanceRR(messages []*string) {
 
 	// Commit the next RR ID to continue with.
 	pool.commitRR(pos)
+}
+
+func (p *Pool) commitRR(pos int) {
+	p.Lock()
+	defer p.Unlock()
+	p.RRCurrent = pos
+}
+
+func (p *Pool) nextRR(pos int) int {
+	max := len(p.RRList) - 1
+	var next int
+
+	if pos == max {
+		next = 0
+	} else {
+		pos++
+		next = pos
+	}
+
+	return next
 }
 
 func establishConn(addr string) net.Conn {
