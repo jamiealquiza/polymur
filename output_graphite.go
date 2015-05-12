@@ -17,12 +17,13 @@ type Pool struct {
 }
 
 var (
-	pool = &Pool{Connections: make(map[string]chan *string)}
+	pool           = &Pool{Connections: make(map[string]chan *string)}
+	failedMessages = make(chan *string, 512)
 
 	distribution = map[string]func([]*string){
-		"broadcast": broadcast,
+		"broadcast":  broadcast,
 		"balance-rr": balanceRR,
-		}
+	}
 )
 
 func broadcast(messages []*string) {
@@ -33,8 +34,8 @@ func broadcast(messages []*string) {
 			select {
 			case q <- m:
 				continue
-			// Skip if it's full.
 			default:
+				// Skip if it's full.
 				continue
 			}
 		}
@@ -46,20 +47,29 @@ func balanceRR(messages []*string) {
 	pos := pool.RRCurrent
 
 	for _, m := range messages {
-		retry:
+		pos = pool.nextRR(pos)
 		select {
+		// Attempt current RR node.
 		case pool.RRList[pos] <- m:
-			pos = pool.nextRR(pos)
+			continue
 		default:
-			pos = pool.nextRR(pos)
-			goto retry
+			break
 		}
+
+		select {
+		// If unavailable, load into failed messages for retry.
+		case failedMessages <- m:
+			continue
+		// If failedMessages is full, don't block message distribution.
+		default:
+			continue
+		}
+
 	}
 
 	// Commit the next RR ID to continue with.
 	pool.commitRR(pos)
 }
-
 
 func (p *Pool) commitRR(pos int) {
 	p.Lock()
@@ -81,14 +91,12 @@ func (p *Pool) nextRR(pos int) int {
 	return next
 }
 
-func reEnqueue() {
-	// If a connection is removed from the pool,
-	// redistribute it's queue to healthy nodes.
-}
-
-func healthPoller() {
-	// Actively track connection health
-	// and pull/add from pools.
+func failedMessageHandler(q chan []*string) {
+	for m := range failedMessages {
+		messages := []*string{m}
+		q <- messages
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func establishConn(addr string) net.Conn {
@@ -118,6 +126,7 @@ func destinationWriter(addr string, q <-chan *string) {
 	retry:
 		_, err := fmt.Fprintln(conn, *m)
 		if err != nil {
+			// Health logic here?
 			log.Printf("Destination %s error: %s\n", addr, err)
 			log.Printf("Attempting to establish new connection to %s\n", addr)
 			conn = establishConn(addr)
@@ -127,7 +136,9 @@ func destinationWriter(addr string, q <-chan *string) {
 
 }
 
-func outputGraphite(q <-chan []*string, cap int, ready chan bool) {
+func outputGraphite(q chan []*string, cap int, ready chan bool) {
+
+	go failedMessageHandler(q)
 
 	destinations := strings.Split(options.destinations, ",")
 

@@ -37,6 +37,7 @@ func statsTracker(s *Statser) {
 
 	for {
 		<-tick
+
 		lastCnt = currCnt
 		currCnt = s.FetchRecv()
 		deltaCnt := currCnt - lastCnt
@@ -55,6 +56,10 @@ func statsTracker(s *Statser) {
 			case currLen > 0:
 				log.Printf("Destination %s queue length: %d\n", dest, currLen)
 			}
+		}
+
+		if l := len(failedMessages); l > 0 {
+			log.Printf("Failed message queue length: %d\n", l)
 		}
 
 	}
