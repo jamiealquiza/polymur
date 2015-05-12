@@ -21,11 +21,14 @@ var (
 )
 
 func broadcast(messages []*string) {
+	// For each message in the batch,
 	for _, m := range messages {
+		// enqueue into each available destination queue.
 		for _, q := range pool.Connections {
 			select {
 			case q <- m:
 				continue
+			// Skip if it's full.
 			default:
 				continue
 			}
@@ -34,19 +37,29 @@ func broadcast(messages []*string) {
 }
 
 func balanceRR(messages []*string) {
+	// Fetch current the RR
 	i := pool.RRCurrent
 	max := len(pool.RRList)-1
 	for _, m := range messages {
-		// If this fails, retry next.
-		pool.RRList[i] <- m
+		// Needs logic to retry next.
+		select {
+		case pool.RRList[i] <- m:
+			continue
+		default:
+			continue
+
+		// Increment to next RR node.
+		// Roll over when we hit the end.
 		if i == max {
 			i = 0
 		} else {
 			i++
 		}
 	}
+
+	// Commit which RR ID we left off with.
 	pool.Lock()
-	pool.RRCurrent = i
+	pool.RRCurrent = i+1
 	pool.Unlock()
 }
 
