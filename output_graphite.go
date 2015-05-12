@@ -12,13 +12,33 @@ import (
 type Pool struct {
 	sync.Mutex
 	Connections map[string]chan *string
-	RRList []chan *string
-	RRCurrent int
+	RRList      []chan *string
+	RRCurrent   int
 }
 
 var (
 	pool = &Pool{Connections: make(map[string]chan *string)}
 )
+
+func (p *Pool) commitRR(pos int) {
+	p.Lock()
+	defer p.Unlock()
+	p.RRCurrent = pos
+}
+
+func (p *Pool) nextRR(pos int) int {
+	max := len(p.RRList) - 1
+	var next int
+
+	if pos == max {
+		next = 0
+	} else {
+		pos++
+		next = pos
+	}
+
+	return next
+}
 
 func broadcast(messages []*string) {
 	// For each message in the batch,
@@ -37,30 +57,21 @@ func broadcast(messages []*string) {
 }
 
 func balanceRR(messages []*string) {
-	// Fetch current the RR
+	// Fetch current the RR ID.
 	i := pool.RRCurrent
-	max := len(pool.RRList)-1
+
 	for _, m := range messages {
 		// Needs logic to retry next.
 		select {
 		case pool.RRList[i] <- m:
-			continue
+			i = pool.nextRR(i)
 		default:
-			continue
-
-		// Increment to next RR node.
-		// Roll over when we hit the end.
-		if i == max {
-			i = 0
-		} else {
-			i++
+			i = pool.nextRR(i)
 		}
 	}
 
-	// Commit which RR ID we left off with.
-	pool.Lock()
-	pool.RRCurrent = i+1
-	pool.Unlock()
+	// Commit the next RR ID to continue with.
+	pool.commitRR(i)
 }
 
 func establishConn(addr string) net.Conn {
@@ -82,12 +93,12 @@ func establishConn(addr string) net.Conn {
 	return conn
 }
 
-func destinationWriter(addr string, q <- chan *string) {
+func destinationWriter(addr string, q <-chan *string) {
 	conn := establishConn(addr)
 	defer conn.Close()
 
 	for m := range q {
-		retry:
+	retry:
 		_, err := fmt.Fprintln(conn, *m)
 		if err != nil {
 			log.Printf("Destination %s error: %s\n", addr, err)
@@ -116,10 +127,10 @@ func outputGraphite(q <-chan []*string, cap int, ready chan bool) {
 
 	// In case we want any initialization to block.
 	// Lazily give writers a head start before the listener.
-	time.Sleep(1*time.Second)
+	time.Sleep(1 * time.Second)
 	ready <- true
 
 	for messages := range q {
-		broadcast(messages)
+		balanceRR(messages)
 	}
 }

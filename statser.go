@@ -34,7 +34,7 @@ func (s *Statser) FetchSent() int64 {
 func statsTracker(s *Statser) {
 	tick := time.Tick(5 * time.Second)
 	var currCnt, lastCnt int64
-	
+
 	for {
 		<-tick
 		lastCnt = currCnt
@@ -50,10 +50,10 @@ func statsTracker(s *Statser) {
 		for dest, outboundQueue := range pool.Connections {
 			currLen := len(outboundQueue)
 			switch {
-				case currLen == options.queuecap:
-					log.Printf("Destination %s queue is at capacity (%d) - further messages will be dropped", dest, currLen)
-				case currLen > 0:
-					log.Printf("Destination %s queue length: %d\n", dest, currLen)
+			case currLen == options.queuecap:
+				log.Printf("Destination %s queue is at capacity (%d) - further messages will be dropped", dest, currLen)
+			case currLen > 0:
+				log.Printf("Destination %s queue length: %d\n", dest, currLen)
 			}
 		}
 
