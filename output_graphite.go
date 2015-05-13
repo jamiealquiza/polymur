@@ -115,6 +115,14 @@ func (p *Pool) register(addr string) {
 	p.Registered[addr] = time.Now().Unix()
 }
 
+func (p *Pool) unregister(addr string) {
+	p.Lock()
+	delete(p.Registered, addr)
+	p.Unlock()
+
+	p.removeConn(addr)
+}
+
 // addConn adds a connection's outbound queue
 // to the global connection pool lists.
 func (p *Pool) addConn(addr string) {
@@ -129,6 +137,12 @@ func (p *Pool) addConn(addr string) {
 // from the global connection pool lists.
 // Additionally, it will redistribute any in-flight messages.
 func (p *Pool) removeConn(addr string) {
+	if _, connectionIsInPool := pool.Conns[addr]; !connectionIsInPool {
+		return
+	}
+
+	log.Printf("Removing destination %s from connection pool\n", addr)
+
 	p.Lock()
 	// Grab the queue to redistribute any message it's holding.
 	q := p.Conns[addr]
@@ -204,7 +218,7 @@ func establishConn(addr string) net.Conn {
 		_, connectionIsInPool := pool.Conns[addr]
 		// Are we retrying a previously established connection that failed?
 		if retry > retryMax && connectionIsInPool {
-			log.Printf("Exceeded retry count (%d), removing destination %s from connection pool\n", retryMax, addr)
+			log.Printf("Exceeded retry count (%d) for destination %s\n", retryMax, addr)
 			pool.removeConn(addr)
 		}
 
