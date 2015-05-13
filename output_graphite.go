@@ -18,7 +18,7 @@ type Pool struct {
 
 var (
 	pool           = &Pool{Conns: make(map[string]chan *string)}
-	failedMessages = make(chan []*string, 4096)
+	retryQueue = make(chan []*string, 4096)
 
 	distributionMethod = map[string]func([]*string){
 		"broadcast":  broadcast,
@@ -54,24 +54,23 @@ func balanceRR(messages []*string) {
 		pos = pool.nextRR(pos)
 
 		if pos < 0 {
-			log.Println("No destinations available, further messages will be dropped")
-			break
-		}
-
-		// Attempt current RR node.
-		select {
-		case pool.ConnsList[pos] <- m:
-			continue
-		default:
-			break
+			log.Println("No destinations available, loading batch into retry queue")
+		} else {
+			// Attempt current RR node.
+			select {
+			case pool.ConnsList[pos] <- m:
+				continue
+			default:
+				break
+			}
 		}
 
 		// If unavailable, load into failed messages for retry.
 		failed := []*string{m}
 		select {
-		case failedMessages <- failed:
-			continue
-		// If failedMessages is full, don't block message distribution.
+		case retryQueue <- failed:
+			fmt.Println("failed loaded")
+		// If retryQueue is full, don't block message distribution.
 		default:
 			continue
 		}
@@ -135,14 +134,16 @@ func (p *Pool) removeConn(addr string) {
 		log.Printf("Redistributing in-flight messages for %s", addr)
 		for m := range q {
 			failed := []*string{m}
-			failedMessages <- failed
+			retryQueue <- failed
 		}
 	}
 }
 
-// faildMessageHandler catches any messages loaded
+// retryMessageHandler catches any messages loaded
 // into the failedMessage queue and retries distribution.
-func failedMessageHandler() {
+// TODO: needs exponential backoff when using RR and no destinations 
+// are available; messages will enter a tight loop.
+func retryMessageHandler() {
 	flushTimeout := time.Tick(15 * time.Second)
 	messages := []*string{}
 	batchSize := 30
@@ -156,16 +157,18 @@ func failedMessageHandler() {
 				messages = []*string{}
 			}
 			messages = []*string{}
-		case failed := <-failedMessages:
+		case retry := <-retryQueue:
 			// If this puts us at the batchSize threshold, enqueue
 			// into the messageIncomingQueue.
 			if len(messages)+1 >= batchSize {
-				messages = append(messages, failed...)
+				messages = append(messages, retry...)
+				// Lazy latency injection to tame loops. See TODO.
+				time.Sleep(100*time.Millisecond)
 				distributionMethod[options.distribution](messages)
 				messages = []*string{}
 			} else {
 				// Otherwise, just append message to current batch.
-				messages = append(messages, failed...)
+				messages = append(messages, retry...)
 			}
 		}
 	}
@@ -234,7 +237,7 @@ func destinationWriter(addr string) {
 }
 
 func outputGraphite(q chan []*string, ready chan bool) {
-	go failedMessageHandler()
+	go retryMessageHandler()
 
 	destinations := strings.Split(options.destinations, ",")
 	for _, addr := range destinations {

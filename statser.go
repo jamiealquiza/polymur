@@ -63,8 +63,8 @@ func statsTracker(s *Statser) {
 		pool.Unlock()
 
 		// Misc. internal queues.
-		if l := len(failedMessages); l > 0 {
-			log.Printf("Failed message queue length: %d\n", l)
+		if l := len(retryQueue); l > 0 {
+			log.Printf("Retry message queue length: %d\n", l)
 		}
 
 	}
