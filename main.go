@@ -34,8 +34,8 @@ var (
 )
 
 func init() {
-	flag.StringVar(&options.addr, "listen-addr", "localhost", "bind address")
-	flag.StringVar(&options.port, "listen-port", "2005", "bind port")
+	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0", "bind address")
+	flag.StringVar(&options.port, "listen-port", "2003", "bind port")
 	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity to any single destination")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
