@@ -74,9 +74,11 @@ func main() {
 	sentCnt := NewStatser()
 	go statsTracker(sentCnt)
 	go listener(sentCnt)
+	go api("localhost", "2030")
 	if options.metricsFlush > 0 {
 		go runstats.WriteGraphite(messageIncomingQueue, options.metricsFlush)
 	}
 	go runstats.Start("localhost", "2020", nil)
+
 	runControl()
 }

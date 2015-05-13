@@ -14,16 +14,21 @@ type Pool struct {
 	Conns     map[string]chan *string
 	ConnsList []chan *string
 	RRCurrent int
+	Registered map[string]int64
 }
 
 var (
-	pool           = &Pool{Conns: make(map[string]chan *string)}
-	retryQueue = make(chan []*string, 4096)
+	pool           = &Pool{
+		Conns: make(map[string]chan *string),
+		Registered: make(map[string]int64),
+	}
 
 	distributionMethod = map[string]func([]*string){
 		"broadcast":  broadcast,
 		"balance-rr": balanceRR,
 	}
+
+	retryQueue = make(chan []*string, 4096)
 )
 
 func broadcast(messages []*string) {
@@ -101,6 +106,13 @@ func (p *Pool) nextRR(pos int) int {
 		// Next position.
 		return pos
 	}
+}
+
+func (p *Pool) register(addr string) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.Registered[addr] = time.Now().Unix()
 }
 
 // addConn adds a connection's outbound queue
@@ -226,6 +238,7 @@ func establishConn(addr string) net.Conn {
 // It dequeues from the connection outbound buffer
 // and writes to the respective destination.
 func destinationWriter(addr string) {
+	pool.register(addr)
 	conn := establishConn(addr)
 	defer conn.Close()
 
