@@ -23,7 +23,6 @@ func listener(s *Statser) {
 	}
 	defer server.Close()
 
-
 	// Connection handler loop.
 	for {
 		conn, err := server.Accept()

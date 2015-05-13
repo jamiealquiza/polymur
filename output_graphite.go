@@ -143,8 +143,31 @@ func (p *Pool) removeConn(addr string) {
 // faildMessageHandler catches any messages loaded
 // into the failedMessage queue and retries distribution.
 func failedMessageHandler() {
-	for messages := range failedMessages {
-		distributionMethod[options.distribution](messages)
+	flushTimeout := time.Tick(15 * time.Second)
+	messages := []*string{}
+	batchSize := 30
+
+	for {
+		// We hit the flush timeout, load the current batch if present.
+		select {
+		case <-flushTimeout:
+			if len(messages) > 0 {
+				distributionMethod[options.distribution](messages)
+				messages = []*string{}
+			}
+			messages = []*string{}
+		case failed := <-failedMessages:
+			// If this puts us at the batchSize threshold, enqueue
+			// into the messageIncomingQueue.
+			if len(messages)+1 >= batchSize {
+				messages = append(messages, failed...)
+				distributionMethod[options.distribution](messages)
+				messages = []*string{}
+			} else {
+				// Otherwise, just append message to current batch.
+				messages = append(messages, failed...)
+			}
+		}
 	}
 }
 
@@ -184,7 +207,7 @@ func establishConn(addr string) net.Conn {
 				// likely here due to a temporary disconnect.
 				log.Printf("Reconnected to destination: %s\n", addr)
 			}
-			
+
 			return conn
 		}
 
@@ -211,7 +234,6 @@ func destinationWriter(addr string) {
 }
 
 func outputGraphite(q chan []*string, ready chan bool) {
-
 	go failedMessageHandler()
 
 	destinations := strings.Split(options.destinations, ",")
