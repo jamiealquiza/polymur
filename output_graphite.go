@@ -128,6 +128,10 @@ func (p *Pool) removeConn(addr string) {
 	}
 	p.Unlock()
 
+	// Don't need to redistribute in-flight for broadcast.
+	if options.distribution == "broadcast" {
+		return
+	}
 	// If the queue had any in-flight messages, redistribute them.
 	close(q)
 	if len(q) > 0 {
