@@ -1,20 +1,10 @@
 # polymur
 
-Total work in progress.
+WIP.
 
 ### Overview
 
-Receives Graphite plaintext protocol (LF delimited messages) metrics from collectd/statsd/etc. and replicates the output to multiple destinations. Intended to be a high performance replacement for carbon-relay mirroring with additional health checks and failure mode controls. 
-
-Polymur can also be used upstream to a single destination Graphite node; it's efficient at terminating thousands of connections and multiplexing the input over a single TCP connection to a backend Graphite server, in addition to buffering inbound metrics should the backend become temporarily unavailable.
-
-### Internals
-
-Polymur listens on the configured addr:port for incoming connections. Each connection is handled in a dedicated Goroutine. Each connection/Goroutine reads the inbound stream and allocates a message string at LF boundaries. Messages are accumulated as slices of string pointers and flushed to an inbound queue, either after 5 seconds or when the slice hits 30 elements (to reduce [channel operations](https://grey-boundary.io/concurrent-communication-performance-in-go/)). Message batches are broadcasted to a dedicated queue for each output destination. Destination output is also handled using dedicated Goroutines, where temporary latency or full disconnects to one destination will not impact write performance to another destination. If a destination becomes unreachable, the endpoint will be retried at 15 second intervals while the respective destination queue buffers incoming messages. Per destination queue capacity is determined by the `-queue-cap` directive. Any destination queue with an outstanding length greater than 0 will be logged to stdout. Any destination queue that exceeds the configured `-queue-cap` will not receive any new messages until the queue is cleared.
-
-Note: memory footprint for in-flight messages will be roughly: 
-- average worst case: *message size * `-queue-cap`* (assuming every queue is full)
-- absolute worst case: *message size * number of destinations * `-queue-cap`* (assuming every queue is full and each queue is referencing unique messages not found in any other queue)
+Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimited messages) from tools like Collectd or Statsd, and either replicates or round-robins the output to one or more destinations. Polymur is efficient at terminating many thousands of connections and provides in-line buffering (should a destination become temporarily unavailable), runtime destination manipulation ("I want to try InfluxDB, let's mirror all our production metrics to x.x.x.x"), and failover redistribution (in round-robin mode: if node C fails, redistribute in-flight metrics for this destination to nodes A and B).
 
 ### Installation
 
@@ -29,26 +19,91 @@ Usage of ./polymur:
   -console-out=false: Dump output to console
   -destinations="": Comma-delimited list of ip:port destinations
   -distribution="broadcast": Destination distribution methods: broadcast, balance-rr
-  -listen-addr="localhost": bind address
-  -listen-port="2005": bind port
+  -listen-addr="0.0.0.0": bind address
+  -listen-port="2003": bind port
   -metrics-flush=0: Graphite flush interval for runtime metrics (0 is disabled)
   -queue-cap=4096: In-flight message queue capacity to any single destination
 </pre>
 
 ### Examples
 
+#### Running
+
+Listening for incoming metrics on `0.0.0.0:2003` and mirroring to `10.0.5.20:2003` and `10.0.5.30:2003`:
 <pre>
-./polymur -destinations="10.0.5.20:2003,10.0.5.25:2003" -listen-port="2003" -listen-addr="0.0.0.0" -metrics-flush=30
-2015/05/11 15:13:05 Metrics listener started: 0.0.0.0:2003
-2015/05/11 15:13:05 Connected to destination: 10.0.5.25:2003
-2015/05/11 15:13:05 Connected to destination: 10.0.5.20:2003
-2015/05/11 15:13:05 Runstats started: localhost:2020
-2015/05/11 15:13:10 Last 5s: Received 6176 datapoints | Avg: 1235.20/sec. | Inbound queue length: 0
-2015/05/11 15:13:15 Last 5s: Received 5685 datapoints | Avg: 1137.00/sec. | Inbound queue length: 0
-2015/05/11 15:13:20 Last 5s: Received 8508 datapoints | Avg: 1701.60/sec. | Inbound queue length: 0
-2015/05/11 15:13:25 Last 5s: Received 7990 datapoints | Avg: 1598.00/sec. | Inbound queue length: 0
-2015/05/11 15:13:30 Last 5s: Received 10784 datapoints | Avg: 2156.80/sec. | Inbound queue length: 0
-2015/05/11 15:13:35 Last 5s: Received 15606 datapoints | Avg: 3121.20/sec. | Inbound queue length: 0
-2015/05/11 15:13:40 Last 5s: Received 12377 datapoints | Avg: 2475.40/sec. | Inbound queue length: 0
-2015/05/11 15:13:45 Last 5s: Received 8390 datapoints | Avg: 1678.00/sec. | Inbound queue length: 0
+./polymur -destinations=10.0.5.20:2003,10.0.5.30:2003 -metrics-flush=30 -listen-port=2003 -listen-addr=0.0.0.0 -distribution="broadcast"
+2015/05/14 15:19:08 Registered destination 10.0.5.20:2003
+2015/05/14 15:19:08 Registered destination 10.0.5.30:2003
+2015/05/14 15:19:08 Adding destination to connection pool: 10.0.5.30:2003
+2015/05/14 15:19:08 Adding destination to connection pool: 10.0.5.20:2003
+2015/05/14 15:19:09 API started: localhost:2030
+2015/05/14 15:19:09 Runstats started: localhost:2020
+2015/05/14 15:19:09 Metrics listener started: 0.0.0.0:2003
+2015/05/14 15:19:14 Last 5s: Received 7276 data points | Avg: 1455.20/sec. | Inbound queue length: 0
+2015/05/14 15:19:19 Last 5s: Received 6471 data points | Avg: 1294.20/sec. | Inbound queue length: 0
+2015/05/14 15:19:24 Last 5s: Received 6744 data points | Avg: 1348.80/sec. | Inbound queue length: 0
+2015/05/14 15:19:29 Last 5s: Received 5806 data points | Avg: 1161.20/sec. | Inbound queue length: 0
 </pre>
+
+#### Changing destinations
+
+Polymur started with no initial destinations:
+<pre>
+% echo getdest | nc localhost 2030
+{
+ "active": [],
+ "registered": {}
+}
+</pre>
+
+Add destination at runtime:
+<pre>
+% echo putdest localhost:6020 | nc localhost 2030          
+Registered destination: localhost:6020
+
+% echo getdest | nc localhost 2030
+{
+ "active": [
+  "localhost:6020"
+ ],
+ "registered": {
+  "localhost:6020": "2015-05-14T09:09:23.620410265-06:00"
+ }
+}
+</pre>
+
+Polymur output:
+<pre>
+./polymur -distribution="balance-rr" -listen-port="2003"
+2015/05/14 09:09:15 Metrics listener started: 0.0.0.0:2003
+2015/05/14 09:09:15 API started: localhost:2030
+2015/05/14 09:09:15 Runstats started: localhost:2020
+2015/05/14 09:09:23 Registered destination localhost:6020
+2015/05/14 09:09:23 Adding destination to connection pool: localhost:6020
+</pre>
+
+### Internals
+
+Terminology:
+
+- **Destination**: where metrics will be forwarded using the Graphite plaintext protocol
+- **Destination queue**: metrics in-flight for a given destination
+- **Registered**: a candidate destination loaded into Polymur, but not necessarily active
+- **Connection**: a registered destination with an active connection
+- **Connection pool**: global list of all active connections and their respective destination queue
+- **Distribution mode**: how metrics are distributed to destinations (round-robin, broadcast)
+- **Retry queue**: messages that couldn't be sent to their destination are loaded into the retry queue (e.g. a round-robin node is removed from the connection pool)
+
+Polymur listens on the configured addr:port for incoming connections, each connection handled in a dedicated Goroutine. A connection Goroutine reads the inbound stream and allocates a message string at LF boundaries. Messages are accumulated as slices of string pointers and flushed to a shared inbound queue, either after 5 seconds or when the slice hits 30 elements (to reduce [channel operations](https://grey-boundary.io/concurrent-communication-performance-in-go/)). 
+
+Message batches from the inbound queue are distributed (broadcast or round-robin) to a dedicated queue for each output destination. Destination output is also handled using dedicated Goroutines, where temporary latency or full disconnects to one destination will not impact write performance to another destination. If a destination becomes unreachable, the endpoint will be retried at 15 second intervals while the respective destination queue buffers incoming messages. Per destination queue capacity is determined by the `-queue-cap` directive. Any destination queue with an outstanding length greater than 0 will be logged to stdout. Any destination queue that exceeds the configured `-queue-cap` will not receive any new messages until the queue is cleared. If the distribution mode is round-robin, three consecutive reconnect attempt failures will result in removing the connection from the connection pool and redistributing any in-flight messages to the retry queue.
+
+Note: memory footprint for in-flight messages will be roughly:
+
+- average worst case: *message size * `-queue-cap`* (assuming every queue is full)
+- absolute worst case: *message size * number of destinations * `-queue-cap`* (assuming every queue is full and each queue is referencing unique messages not found in any other queue)
+
+### FAQ
+
+#### Why no consistent-hashing?
+I no longer use multi-node Graphite [setups](https://grey-boundary.io/the-architecture-of-clustering-graphite/) with CH. While it functions and helper tools exist, CH distribution to storage without attributes such as hand-off or an ability to rebalance after changing a hash ring is operationally clumsy.
