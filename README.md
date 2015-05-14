@@ -8,6 +8,18 @@ Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimi
 
 Polymur was created to introduce more flexibility into the way metrics streams are managed, and to reduce the total number of components needed to operate Graphite deployments. It's built in a highly concurrent fashion and doesn't need multiple instances per-node with a local load-balancer, if it's being used as a Carbon relay upstream from your Graphite servers. If it's being used as a Carbon relay on your Graphite server to distribute metrics to Carbon-cache daemons, daemons can self register themselves on start using Polymur's simple API.
 
+#### Polymur replacing upstream relays
+
+Terminating connections from all sending hosts and distributing to downstream Graphite servers:
+
+![ScreenShot](https://d1n2314jgy7p59.cloudfront.net/polymur-relay-b.jpg)
+
+#### Polymur replacing local relays
+
+Polymur running on a Graphite server in round-robin mode, distributing metrics from upstream relays to local carbon-cache daemons:
+
+![ScreenShot](https://d1n2314jgy7p59.cloudfront.net/polymur-relay-a.jpg)
+
 ### Installation
 
 - `go get github.com/jamiealquiza/polymur`
