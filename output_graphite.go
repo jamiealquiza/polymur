@@ -15,13 +15,13 @@ type Pool struct {
 	Conns      map[string]chan *string
 	ConnsList  []chan *string
 	RRCurrent  int
-	Registered map[string]int64
+	Registered map[string]time.Time
 }
 
 var (
 	pool = &Pool{
 		Conns:      make(map[string]chan *string),
-		Registered: make(map[string]int64),
+		Registered: make(map[string]time.Time),
 	}
 
 	distributionMethod = map[string]func([]*string){
@@ -114,7 +114,7 @@ func (p *Pool) register(addr string) {
 	defer p.Unlock()
 
 	log.Printf("Registered destination %s\n", addr)
-	p.Registered[addr] = time.Now().Unix()
+	p.Registered[addr] = time.Now()
 }
 
 func (p *Pool) unregister(addr string) {
