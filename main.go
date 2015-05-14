@@ -43,10 +43,6 @@ func init() {
 	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, balance-rr")
 	flag.Parse()
 
-	if options.destinations == "" {
-		log.Fatal("Destinations must be set")
-	}
-
 	messageIncomingQueue = make(chan []*string, 512)
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -71,6 +67,7 @@ func main() {
 	}
 
 	<-ready
+
 	sentCnt := NewStatser()
 	go statsTracker(sentCnt)
 	go listener(sentCnt)

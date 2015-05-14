@@ -75,7 +75,7 @@ func balanceRR(messages []*string) {
 		failed := []*string{m}
 		select {
 		case retryQueue <- failed:
-			fmt.Println("failed loaded")
+			continue
 		// If retryQueue is full, don't block message distribution.
 		default:
 			continue
@@ -197,7 +197,7 @@ func retryMessageHandler() {
 			if len(messages)+1 >= batchSize {
 				messages = append(messages, retry...)
 				// Lazy latency injection to tame loops. See TODO.
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(500 * time.Millisecond)
 				distributionMethod[options.distribution](messages)
 				messages = []*string{}
 			} else {
@@ -294,6 +294,10 @@ func outputGraphite(q chan []*string, ready chan bool) {
 
 	destinations := strings.Split(options.destinations, ",")
 	for _, addr := range destinations {
+		if addr == "" {
+			continue
+		}
+
 		go destinationWriter(addr)
 	}
 
