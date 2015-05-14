@@ -1,26 +1,25 @@
 package main
 
 import (
-	"fmt"
-	"net"
-	"log"
 	"bufio"
 	"encoding/json"
+	"fmt"
+	"log"
+	"net"
 	"strings"
 )
 
 var (
 	commands = map[string]func(r Request) string{
-		"getdest":  getdest,
+		"getdest": getdest,
 		"putdest": putdest,
 		"deldest": deldest,
 	}
-
 )
 
 type Request struct {
 	command string
-	param string
+	param   string
 }
 
 func getdest(r Request) string {
@@ -41,11 +40,19 @@ func getdest(r Request) string {
 }
 
 func putdest(r Request) string {
+	if r.param == "" {
+		return fmt.Sprintf("Must provide destination\n")
+	}
+
 	go destinationWriter(r.param)
 	return fmt.Sprintf("Registered destination: %s\n", r.param)
 }
 
 func deldest(r Request) string {
+	if r.param == "" {
+		return fmt.Sprintf("Must provide destination\n")
+	}
+
 	pool.unregister(r.param)
 	return fmt.Sprintf("Unregistered destination: %s\n", r.param)
 }

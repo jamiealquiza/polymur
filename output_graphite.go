@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -11,15 +12,15 @@ import (
 
 type Pool struct {
 	sync.Mutex
-	Conns     map[string]chan *string
-	ConnsList []chan *string
-	RRCurrent int
+	Conns      map[string]chan *string
+	ConnsList  []chan *string
+	RRCurrent  int
 	Registered map[string]int64
 }
 
 var (
-	pool           = &Pool{
-		Conns: make(map[string]chan *string),
+	pool = &Pool{
+		Conns:      make(map[string]chan *string),
 		Registered: make(map[string]int64),
 	}
 
@@ -112,6 +113,7 @@ func (p *Pool) register(addr string) {
 	p.Lock()
 	defer p.Unlock()
 
+	log.Printf("Registered destination %s\n", addr)
 	p.Registered[addr] = time.Now().Unix()
 }
 
@@ -120,6 +122,7 @@ func (p *Pool) unregister(addr string) {
 	delete(p.Registered, addr)
 	p.Unlock()
 
+	log.Printf("Unregistered destination %s\n", addr)
 	p.removeConn(addr)
 }
 
@@ -137,6 +140,7 @@ func (p *Pool) addConn(addr string) {
 // from the global connection pool lists.
 // Additionally, it will redistribute any in-flight messages.
 func (p *Pool) removeConn(addr string) {
+	// Check if it exists, first.
 	if _, connectionIsInPool := pool.Conns[addr]; !connectionIsInPool {
 		return
 	}
@@ -171,7 +175,7 @@ func (p *Pool) removeConn(addr string) {
 
 // retryMessageHandler catches any messages loaded
 // into the failedMessage queue and retries distribution.
-// TODO: needs exponential backoff when using RR and no destinations 
+// TODO: needs exponential backoff when using RR and no destinations
 // are available; messages will enter a tight loop.
 func retryMessageHandler() {
 	flushTimeout := time.Tick(15 * time.Second)
@@ -193,7 +197,7 @@ func retryMessageHandler() {
 			if len(messages)+1 >= batchSize {
 				messages = append(messages, retry...)
 				// Lazy latency injection to tame loops. See TODO.
-				time.Sleep(100*time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 				distributionMethod[options.distribution](messages)
 				messages = []*string{}
 			} else {
@@ -210,11 +214,16 @@ func retryMessageHandler() {
 // being retried but fails for 3 consecutive attempts, it will be removed
 // from the global pool. Background attempts will continue and the connection
 // will rejoin the pool upon success.
-func establishConn(addr string) net.Conn {
+func establishConn(addr string) (net.Conn, error) {
 	retry := 0
 	retryMax := 3
 
 	for {
+		// If it's not registered, abort.
+		if _, destinationRegistered := pool.Registered[addr]; !destinationRegistered {
+			return nil, errors.New("Destination not registered")
+		}
+
 		_, connectionIsInPool := pool.Conns[addr]
 		// Are we retrying a previously established connection that failed?
 		if retry > retryMax && connectionIsInPool {
@@ -241,7 +250,7 @@ func establishConn(addr string) net.Conn {
 				log.Printf("Reconnected to destination: %s\n", addr)
 			}
 
-			return conn
+			return conn, nil
 		}
 
 	}
@@ -253,7 +262,12 @@ func establishConn(addr string) net.Conn {
 // and writes to the respective destination.
 func destinationWriter(addr string) {
 	pool.register(addr)
-	conn := establishConn(addr)
+	conn, err := establishConn(addr)
+	if err != nil {
+		// If we have an error here, it likely means
+		// that this connection never
+		return
+	}
 	defer conn.Close()
 
 	for m := range pool.Conns[addr] {
@@ -261,7 +275,15 @@ func destinationWriter(addr string) {
 		if err != nil {
 			pool.Conns[addr] <- m
 			log.Printf("Destination %s error: %s\n", addr, err)
-			conn = establishConn(addr)
+
+			// Wait on a connection. If the destination isn't
+			// registered, err and close this writer.
+			newConn, err := establishConn(addr)
+			if err != nil {
+				break
+			} else {
+				conn = newConn
+			}
 		}
 	}
 
