@@ -18,7 +18,7 @@ Terminating connections from all sending hosts and distributing to downstream Gr
 
 Polymur running on a Graphite server in round-robin mode, distributing metrics from upstream relays to local carbon-cache daemons:
 
-![ScreenShot](https://d1n2314jgy7p59.cloudfront.net/polymur-relay-a.jpg)
+![ScreenShot](https://d1n2314jgy7p59.cloudfront.net/polymur-relay-c.jpg)
 
 ### Installation
 
