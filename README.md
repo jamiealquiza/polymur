@@ -115,7 +115,7 @@ Message batches from the inbound queue are distributed (broadcast or round-robin
 Note: memory footprint for in-flight messages will be roughly:
 
 - average worst case: *message size * `-queue-cap`* (assuming every queue is full)
-- absolute worst case: *message size * number of destinations * `-queue-cap`* (assuming every queue is full and each queue is referencing unique messages not found in any other queue)
+- the finale to How I Met Your Mother worst case: *message size * number of destinations * `-queue-cap`* (assuming every queue is full and each queue is referencing unique messages not found in any other queue)
 
 ### FAQ
 
