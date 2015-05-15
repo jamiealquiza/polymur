@@ -57,7 +57,7 @@ func runControl() {
 }
 
 func main() {
-	ready := make(chan bool)
+	ready := make(chan bool, 1)
 
 	if options.console {
 		go outputConsole(messageIncomingQueue)
