@@ -27,7 +27,7 @@ func WriteGraphite(c chan[]*string, i int) {
 		stats := buildStats(nil)
 
 		for k, v := range stats["runtime-meminfo"] {
-			value := fmt.Sprintf("%s.graphite-multiplier.runtime.%s %d %d", hostname, k, v, ts)
+			value := fmt.Sprintf("%s.polymur.runtime.%s %d %d", hostname, k, v, ts)
 			metrics = append(metrics, &value)
 		}
 
