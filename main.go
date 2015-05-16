@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/jamiealquiza/graphite-multiplier/runstats"
+	"github.com/jamiealquiza/polymur/runstats"
 )
 
 var (
