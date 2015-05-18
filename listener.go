@@ -27,7 +27,8 @@ func listener(s *Statser) {
 	for {
 		conn, err := server.Accept()
 		if err != nil {
-			log.Printf("Listener down: %s\n", err)
+			log.Printf("Connection handler error: %s\n", err)
+			time.Sleep(1*time.Second)
 			continue
 		}
 		go connectionHandler(conn, s)
