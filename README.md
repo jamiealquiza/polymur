@@ -1,6 +1,6 @@
 # polymur
 
-WIP.
+Undergoing active testing / dev. May have subtle bugs / quirks.
 
 ### Overview
 
