@@ -120,7 +120,7 @@ Note: memory footprint for in-flight messages will be roughly:
 ### FAQ
 
 #### Why no consistent-hashing?
-I no longer use multi-node Graphite [setups](https://grey-boundary.io/the-architecture-of-clustering-graphite/) with CH. While it functions and helper tools exist, CH distribution to storage without attributes such as hand-off or an ability to rebalance after changing a hash ring is operationally clumsy.
+I no longer use multi-node Graphite [setups](https://grey-boundary.io/the-architecture-of-clustering-graphite/) with CH. While it functions and helper tools exist, CH distribution to storage without attributes such as hand-off or an ability to rebalance after changing a hash ring is operationally clumsy. Lastly, CH may be added if RR is found to have a negative performance impact while distributing metrics to local carbon-cache daemons as a local relay (see diagrams).
 
 #### Why no pickle protocol?
 Pickling is a native Python construct; Polymur is written in Go (acknowledging 3rd party libraries exist). More importantly, I have yet to encounter a situation where network was starved before any Carbon daemon became CPU bound, and data serialization certainly doesn't improve that situation. That said, I will be adding protobuf for Polymur to Polymur communication.
