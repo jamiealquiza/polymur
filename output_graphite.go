@@ -3,7 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"log"
+	"math"
 	"net"
 	"strings"
 	"sync"
@@ -27,12 +29,14 @@ var (
 	distributionMethod = map[string]func([]*string){
 		"broadcast":  broadcast,
 		"balance-rr": balanceRR,
+		"balance-hr": balanceHR,
 	}
 
 	retryQueue = make(chan []*string, 4096)
 )
 
 func broadcast(messages []*string) {
+
 	// For each message in the batch,
 	for _, m := range messages {
 		// enqueue into each available destination queue.
@@ -85,6 +89,33 @@ func balanceRR(messages []*string) {
 
 	// Commit the next RR ID to continue with.
 	pool.commitRR(pos)
+}
+
+func balanceHR(messages []*string) {
+	nodes := float64(len(pool.Conns) - 1)
+	for _, m := range messages {
+
+		key := strings.Fields(*m)[0]
+		node := int(math.Ceil(float64(crc32.ChecksumIEEE([]byte(key))) / 4294967295.00 * nodes))
+
+		select {
+		case pool.ConnsList[node] <- m:
+			continue
+		default:
+			break
+		}
+
+		// If unavailable, load into failed messages for retry.
+		failed := []*string{m}
+		select {
+		case retryQueue <- failed:
+			continue
+		// If retryQueue is full, don't block message distribution.
+		default:
+			continue
+		}
+
+	}
 }
 
 func (p *Pool) commitRR(pos int) {
