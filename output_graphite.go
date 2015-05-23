@@ -92,11 +92,11 @@ func balanceRR(messages []*string) {
 }
 
 func balanceHR(messages []*string) {
-	nodes := float64(len(pool.Conns) - 1)
+	nodes := float64(len(pool.Conns))
 	for _, m := range messages {
 
 		key := strings.Fields(*m)[0]
-		node := int(math.Ceil(float64(crc32.ChecksumIEEE([]byte(key))) / 4294967295.00 * nodes))
+		node := int(math.Ceil(float64(crc32.ChecksumIEEE([]byte(key))) / 4294967295.00 * nodes)-1)
 
 		select {
 		case pool.ConnsList[node] <- m:
