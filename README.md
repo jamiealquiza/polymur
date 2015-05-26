@@ -4,7 +4,7 @@ Undergoing active testing / dev. May have subtle bugs / quirks.
 
 ### Overview
 
-Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimited messages) from tools like Collectd or Statsd, and either replicates or round-robins the output to one or more destinations. Polymur is efficient at terminating many thousands of connections and provides in-line buffering (should a destination become temporarily unavailable), runtime destination manipulation ("I want to try InfluxDB, let's mirror all our production metrics to x.x.x.x"), and failover redistribution (in round-robin mode: if node C fails, redistribute in-flight metrics for this destination to nodes A and B).
+Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimited messages) from tools like Collectd or Statsd, and either replicates, round-robins or hash routes the output to one or more destinations. Polymur is efficient at terminating many thousands of connections and provides in-line buffering (should a destination become temporarily unavailable), runtime destination manipulation ("I want to try InfluxDB, let's mirror all our production metrics to x.x.x.x"), and failover redistribution (in round-robin mode: if node C fails, redistribute in-flight metrics for this destination to nodes A and B).
 
 Polymur was created to introduce more flexibility into the way metrics streams are managed and to reduce the total number of components needed to operate Graphite deployments. It's built in a highly concurrent fashion and doesn't need multiple instances per-node with a local load-balancer if it's being used as a Carbon relay upstream from your Graphite servers. If it's being used as a Carbon relay on your Graphite server to distribute metrics to Carbon-cache daemons, daemons can self register themselves on start using Polymur's simple API.
 
@@ -16,7 +16,7 @@ Terminating connections from all sending hosts and distributing to downstream Gr
 
 #### Polymur replacing local relays
 
-Polymur running on a Graphite server in round-robin mode, distributing metrics from upstream relays to local carbon-cache daemons:
+Polymur running on a Graphite server in hash-routing mode, distributing metrics from upstream relays to local carbon-cache daemons:
 
 ![ScreenShot](https://d1n2314jgy7p59.cloudfront.net/polymur-relay-c.jpg)
 
@@ -32,7 +32,7 @@ Polymur running on a Graphite server in round-robin mode, distributing metrics f
 Usage of ./polymur:
   -console-out=false: Dump output to console
   -destinations="": Comma-delimited list of ip:port destinations
-  -distribution="broadcast": Destination distribution methods: broadcast, balance-rr
+  -distribution="broadcast": Destination distribution methods: broadcast, balance-rr, balance-hr
   -listen-addr="0.0.0.0": bind address
   -listen-port="2003": bind port
   -metrics-flush=0: Graphite flush interval for runtime metrics (0 is disabled)
@@ -118,9 +118,6 @@ Note: memory footprint for in-flight messages will be roughly:
 - the finale to How I Met Your Mother worst case: *message size * number of destinations * `-queue-cap`* (assuming every queue is full and each queue is referencing unique messages not found in any other queue)
 
 ### FAQ
-
-#### Why no consistent-hashing?
-I no longer use multi-node Graphite [setups](https://grey-boundary.io/the-architecture-of-clustering-graphite/) with CH. While it functions and helper tools exist, CH distribution to storage without attributes such as hand-off or an ability to rebalance after changing a hash ring is operationally clumsy. Lastly, CH may be added if RR is found to have a negative performance impact while distributing metrics to local carbon-cache daemons as a local relay (see diagrams).
 
 #### Why no pickle protocol?
 Pickling is a native Python construct; Polymur is written in Go (acknowledging 3rd party libraries exist). More importantly, I have yet to encounter a situation where network was starved before any Carbon daemon became CPU bound, and data serialization certainly doesn't improve that situation. That said, I will be adding protobuf for Polymur to Polymur communication.
