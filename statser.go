@@ -33,19 +33,23 @@ func (s *Statser) FetchRecv() int64 {
 // Outputs periodic info summary.
 func statsTracker(s *Statser) {
 	tick := time.Tick(5 * time.Second)
+	lastInterval := time.Now()
 	var currCnt, lastCnt int64
 
 	for {
 		<-tick
+		sinceLastInterval := float64(time.Since(lastInterval).Seconds())
+		lastInterval = time.Now()
 
 		// Inbound rates.
 		lastCnt = currCnt
 		currCnt = s.FetchRecv()
 		deltaCnt := currCnt - lastCnt
 		if deltaCnt > 0 {
-			log.Printf("Last 5s: Received %d data points | Avg: %.2f/sec. | Inbound queue length: %d\n",
+			log.Printf("Last %.2fs: Received %d data points | Avg: %.2f/sec. | Inbound queue length: %d\n",
+				sinceLastInterval,
 				deltaCnt,
-				float64(deltaCnt)/5,
+				float64(deltaCnt)/sinceLastInterval,
 				len(messageIncomingQueue))
 		}
 
