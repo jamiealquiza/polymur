@@ -53,7 +53,7 @@ func broadcast(messages []*string) {
 }
 
 func balanceRR(messages []*string) {
-	// Fetch current the RR ID.
+	// Fetch the current RR ID.
 	pos := pool.RRCurrent
 
 	for _, m := range messages {
@@ -206,7 +206,7 @@ func (p *Pool) removeConn(addr string) {
 
 // retryMessageHandler catches any messages loaded
 // into the failedMessage queue and retries distribution.
-// TODO: needs exponential backoff when using RR and no destinations
+// TODO: needs exponential backoff when no destinations
 // are available; messages will enter a tight loop.
 func retryMessageHandler() {
 	flushTimeout := time.Tick(15 * time.Second)
@@ -257,16 +257,16 @@ func establishConn(addr string) (net.Conn, error) {
 
 		_, connectionIsInPool := pool.Conns[addr]
 		// Are we retrying a previously established connection that failed?
-		if retry > retryMax && connectionIsInPool {
+		if retry >= retryMax && connectionIsInPool {
 			log.Printf("Exceeded retry count (%d) for destination %s\n", retryMax, addr)
 			pool.removeConn(addr)
 		}
 
-		// Try a connection every 15s.
-		conn, err := net.DialTimeout("tcp", addr, time.Duration(5*time.Second))
+		// Try a connection every 10s.
+		conn, err := net.DialTimeout("tcp", addr, time.Duration(3*time.Second))
 		if err != nil {
-			log.Printf("Destination error: %s, retrying in 15s\n", err)
-			time.Sleep(15 * time.Second)
+			log.Printf("Destination error: %s, retrying in 10s\n", err)
+			time.Sleep(10 * time.Second)
 			// Increment failure count.
 			retry++
 			continue
@@ -295,8 +295,6 @@ func destinationWriter(addr string) {
 	pool.register(addr)
 	conn, err := establishConn(addr)
 	if err != nil {
-		// If we have an error here, it likely means
-		// that this connection never
 		return
 	}
 	defer conn.Close()
