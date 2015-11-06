@@ -1,6 +1,6 @@
 # polymur
 
-Undergoing active testing / dev. May have subtle bugs / quirks.
+Undergoing active testing / dev. Performance may degrade over time under heavy loads (> ~5,000 datapoints/sec. per core on modern hardware). May have undiscovered bugs.
 
 ### Overview
 
