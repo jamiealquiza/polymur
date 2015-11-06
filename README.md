@@ -2,6 +2,8 @@
 
 Undergoing active testing / dev. Performance may degrade over time under heavy loads (> ~5,000 datapoints/sec. per core on modern hardware). May have undiscovered bugs.
 
+Definitely build this with Go 1.5.
+
 ### Overview
 
 Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimited messages) from tools like Collectd or Statsd, and either replicates, round-robins or hash routes the output to one or more destinations. Polymur is efficient at terminating many thousands of connections and provides in-line buffering (should a destination become temporarily unavailable), runtime destination manipulation ("Let's mirror all our production metrics to x.x.x.x"), and failover redistribution (in round-robin mode: if node C fails, redistribute in-flight metrics for this destination to nodes A and B).
