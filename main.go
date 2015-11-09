@@ -17,6 +17,10 @@ var (
 	options struct {
 		addr         string
 		port         string
+		apiAddr      string
+		apiPort      string
+		statAddr     string
+		statPort     string
 		queuecap     int
 		console      bool
 		destinations string
@@ -34,8 +38,12 @@ var (
 )
 
 func init() {
-	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0", "bind address")
-	flag.StringVar(&options.port, "listen-port", "2003", "bind port")
+	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0", "Polymur listen address")
+	flag.StringVar(&options.port, "listen-port", "2003", "Polymur listen port")
+	flag.StringVar(&options.apiAddr, "api-addr", "localhost", "API listen address")
+	flag.StringVar(&options.apiPort, "api-port", "2030", "API listen port")
+	flag.StringVar(&options.statAddr, "stat-addr", "localhost", "runstats listen address")
+	flag.StringVar(&options.statPort, "stat-port", "2020", "runstats listen port")
 	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity to any single destination")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
@@ -71,11 +79,11 @@ func main() {
 	sentCnt := NewStatser()
 	go statsTracker(sentCnt)
 	go listener(sentCnt)
-	go api("localhost", "2030")
+	go api(options.apiAddr, options.apiPort)
 	if options.metricsFlush > 0 {
 		go runstats.WriteGraphite(messageIncomingQueue, options.metricsFlush)
 	}
-	go runstats.Start("localhost", "2020", nil)
+	go runstats.Start(options.statAddr, options.statPort, nil)
 
 	runControl()
 }
