@@ -32,13 +32,28 @@ Polymur running on a Graphite server in hash-routing mode, distributing metrics 
 
 <pre>
 Usage of ./polymur:
-  -console-out=false: Dump output to console
-  -destinations="": Comma-delimited list of ip:port destinations
-  -distribution="broadcast": Destination distribution methods: broadcast, balance-rr, balance-hr
-  -listen-addr="0.0.0.0": bind address
-  -listen-port="2003": bind port
-  -metrics-flush=0: Graphite flush interval for runtime metrics (0 is disabled)
-  -queue-cap=4096: In-flight message queue capacity to any single destination
+  -api-addr string
+    	API listen address (default "localhost")
+  -api-port string
+    	API listen port (default "2030")
+  -console-out
+    	Dump output to console
+  -destinations string
+    	Comma-delimited list of ip:port destinations
+  -distribution string
+    	Destination distribution methods: broadcast, balance-rr, balance-hr (default "broadcast")
+  -listen-addr string
+    	Polymur listen address (default "0.0.0.0")
+  -listen-port string
+    	Polymur listen port (default "2003")
+  -metrics-flush int
+    	Graphite flush interval for runtime metrics (0 is disabled)
+  -queue-cap int
+    	In-flight message queue capacity to any single destination (default 4096)
+  -stat-addr string
+    	runstats listen address (default "localhost")
+  -stat-port string
+    	runstats listen port (default "2020")
 </pre>
 
 ### Examples
