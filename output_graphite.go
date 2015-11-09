@@ -96,7 +96,7 @@ func balanceHR(messages []*string) {
 	for _, m := range messages {
 
 		key := strings.Fields(*m)[0]
-		node := int(math.Ceil(float64(crc32.ChecksumIEEE([]byte(key))) / 4294967295.00 * nodes)-1)
+		node := int(math.Ceil(float64(crc32.ChecksumIEEE([]byte(key)))/4294967295.00*nodes) - 1)
 
 		select {
 		case pool.ConnsList[node] <- m:

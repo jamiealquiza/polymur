@@ -28,7 +28,7 @@ func listener(s *Statser) {
 		conn, err := server.Accept()
 		if err != nil {
 			log.Printf("Connection handler error: %s\n", err)
-			time.Sleep(1*time.Second)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		go connectionHandler(conn, s)
@@ -36,7 +36,9 @@ func listener(s *Statser) {
 }
 
 func connectionHandler(c net.Conn, s *Statser) {
-	flushTimeout := time.Tick(time.Duration(config.flushTimeout) * time.Second)
+	flushTimeout := time.NewTicker(time.Duration(config.flushTimeout) * time.Second)
+	defer flushTimeout.Stop()
+
 	messages := []*string{}
 
 	inbound := bufio.NewScanner(c)
@@ -46,7 +48,7 @@ func connectionHandler(c net.Conn, s *Statser) {
 
 		// We hit the flush timeout, load the current batch if present.
 		select {
-		case <-flushTimeout:
+		case <-flushTimeout.C:
 			if len(messages) > 0 {
 				messageIncomingQueue <- messages
 				messages = []*string{}
