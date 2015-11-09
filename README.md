@@ -1,8 +1,8 @@
 # polymur
 
-Undergoing active testing / dev. Performance may degrade over time under heavy loads (> ~5,000 datapoints/sec. per core on modern hardware). May have undiscovered bugs.
+Undergoing active testing / dev. May have undiscovered bugs. Performance will degrade over time under heavy loads (> ~5,000 datapoints/sec. per core on modern hardware). Issue being tracked here: https://github.com/jamiealquiza/polymur/issues/7.
 
-Definitely build this with Go 1.5.
+Definitely build this with Go 1.5.x.
 
 ### Overview
 
