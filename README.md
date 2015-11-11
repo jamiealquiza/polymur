@@ -1,7 +1,6 @@
 # polymur
 
-Undergoing active testing / dev. May have undiscovered bugs. 
-
+Undergoing active testing / dev. May have undiscovered [bugs](https://github.com/jamiealquiza/polymur/issues).
 Definitely build this with Go 1.5.x.
 
 ### Overview
