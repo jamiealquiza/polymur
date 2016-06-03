@@ -21,6 +21,9 @@ Polymur running on a Graphite server in hash-routing mode, distributing metrics 
 
 ![ScreenShot](https://d1n2314jgy7p59.cloudfront.net/polymur-relay-c.jpg)
 
+Real world load reduction - two carbon-relay daemons behind haproxy being replaced with a single Polymur instance:
+![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/carbon-relay-to-polymur.png)
+
 ### Installation
 
 - `go get github.com/jamiealquiza/polymur`
