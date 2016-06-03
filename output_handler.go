@@ -3,40 +3,30 @@ package main
 import (
 	"errors"
 	"fmt"
-	"hash/crc32"
 	"log"
-	"math"
 	"net"
 	"strings"
-	"sync"
 	"time"
 )
 
-type Pool struct {
-	sync.Mutex
-	Conns      map[string]chan *string
-	ConnsList  []chan *string
-	RRCurrent  int
-	Registered map[string]time.Time
-}
 
 var (
 	pool = &Pool{
+		Ring: 		&HashRing{},
 		Conns:      make(map[string]chan *string),
 		Registered: make(map[string]time.Time),
 	}
 
 	distributionMethod = map[string]func([]*string){
 		"broadcast":  broadcast,
-		"balance-rr": balanceRR,
 		"balance-hr": balanceHR,
 	}
 
 	retryQueue = make(chan []*string, 4096)
 )
 
-func broadcast(messages []*string) {
 
+func broadcast(messages []*string) {
 	// For each message in the batch,
 	for _, m := range messages {
 		// enqueue into each available destination queue.
@@ -52,54 +42,14 @@ func broadcast(messages []*string) {
 	}
 }
 
-func balanceRR(messages []*string) {
-	// Fetch the current RR ID.
-	pos := pool.RRCurrent
-
-	for _, m := range messages {
-
-		// If no destinations are available, we're
-		// going to get a negative position val.
-		// Load the whole batch into the retry.
-		pos = pool.nextRR(pos)
-
-		if pos < 0 {
-			log.Println("No destinations available, loading batch into retry queue")
-		} else {
-			// Attempt current RR node.
-			select {
-			case pool.ConnsList[pos] <- m:
-				continue
-			default:
-				break
-			}
-		}
-
-		// If unavailable, load into failed messages for retry.
-		failed := []*string{m}
-		select {
-		case retryQueue <- failed:
-			continue
-		// If retryQueue is full, don't block message distribution.
-		default:
-			continue
-		}
-
-	}
-
-	// Commit the next RR ID to continue with.
-	pool.commitRR(pos)
-}
-
-func balanceHR(messages []*string) {
-	nodes := float64(len(pool.Conns))
+func balanceHR(messages []*string) {	
 	for _, m := range messages {
 
 		key := strings.Fields(*m)[0]
-		node := int(math.Ceil(float64(crc32.ChecksumIEEE([]byte(key)))/4294967295.00*nodes) - 1)
+		node := pool.Ring.GetNode(key)
 
 		select {
-		case pool.ConnsList[node] <- m:
+		case pool.Conns[node] <- m:
 			continue
 		default:
 			break
@@ -115,92 +65,6 @@ func balanceHR(messages []*string) {
 			continue
 		}
 
-	}
-}
-
-func (p *Pool) commitRR(pos int) {
-	p.Lock()
-	defer p.Unlock()
-	p.RRCurrent = pos
-}
-
-func (p *Pool) nextRR(pos int) int {
-	max := len(p.ConnsList) - 1
-	if max < 0 {
-		return -1
-	}
-
-	pos++
-	if pos > max {
-		// We're at the end, wrap around.
-		return 0
-	} else {
-		// Next position.
-		return pos
-	}
-}
-
-func (p *Pool) register(addr string) {
-	p.Lock()
-	defer p.Unlock()
-
-	log.Printf("Registered destination %s\n", addr)
-	p.Registered[addr] = time.Now()
-}
-
-func (p *Pool) unregister(addr string) {
-	p.Lock()
-	delete(p.Registered, addr)
-	p.Unlock()
-
-	log.Printf("Unregistered destination %s\n", addr)
-	p.removeConn(addr)
-}
-
-// addConn adds a connection's outbound queue
-// to the global connection pool lists.
-func (p *Pool) addConn(addr string) {
-	p.Lock()
-	defer p.Unlock()
-
-	p.Conns[addr] = make(chan *string, options.queuecap)
-	p.ConnsList = append(p.ConnsList, p.Conns[addr])
-}
-
-// removeConn removes a connection's outbound queue
-// from the global connection pool lists.
-// Additionally, it will redistribute any in-flight messages.
-func (p *Pool) removeConn(addr string) {
-	// Check if it exists, first.
-	if _, connectionIsInPool := pool.Conns[addr]; !connectionIsInPool {
-		return
-	}
-
-	log.Printf("Removing destination %s from connection pool\n", addr)
-
-	p.Lock()
-	// Grab the queue to redistribute any message it's holding.
-	q := p.Conns[addr]
-	// Remove.
-	delete(p.Conns, addr)
-	p.ConnsList = []chan *string{}
-	for _, conn := range p.Conns {
-		p.ConnsList = append(p.ConnsList, conn)
-	}
-	p.Unlock()
-
-	// Don't need to redistribute in-flight for broadcast.
-	if options.distribution == "broadcast" {
-		return
-	}
-	// If the queue had any in-flight messages, redistribute them.
-	close(q)
-	if len(q) > 0 {
-		log.Printf("Redistributing in-flight messages for %s", addr)
-		for m := range q {
-			failed := []*string{m}
-			retryQueue <- failed
-		}
 	}
 }
 
@@ -245,25 +109,29 @@ func retryMessageHandler() {
 // being retried but fails for 3 consecutive attempts, it will be removed
 // from the global pool. Background attempts will continue and the connection
 // will rejoin the pool upon success.
-func establishConn(addr string) (net.Conn, error) {
+
+// Should probably embed all this logic directly in the pool.
+func establishConn(dest destination) (net.Conn, error) {
 	retry := 0
 	retryMax := 3
 
 	for {
 		// If it's not registered, abort.
-		if _, destinationRegistered := pool.Registered[addr]; !destinationRegistered {
+		if _, destinationRegistered := pool.Registered[dest.name]; !destinationRegistered {
 			return nil, errors.New("Destination not registered")
 		}
 
-		_, connectionIsInPool := pool.Conns[addr]
+		_, connectionIsInPool := pool.Conns[dest.name]
+
 		// Are we retrying a previously established connection that failed?
 		if retry >= retryMax && connectionIsInPool {
-			log.Printf("Exceeded retry count (%d) for destination %s\n", retryMax, addr)
-			pool.removeConn(addr)
+			log.Printf("Exceeded retry count (%d) for destination %s\n", retryMax, dest.name)
+			pool.removeConn(dest)
 		}
 
 		// Try a connection every 10s.
-		conn, err := net.DialTimeout("tcp", addr, time.Duration(3*time.Second))
+		conn, err := net.DialTimeout("tcp", dest.addr, time.Duration(3*time.Second))
+
 		if err != nil {
 			log.Printf("Destination error: %s, retrying in 10s\n", err)
 			time.Sleep(10 * time.Second)
@@ -273,12 +141,12 @@ func establishConn(addr string) (net.Conn, error) {
 		} else {
 			// If this connection succeeds and is not in the pool
 			if !connectionIsInPool {
-				log.Printf("Adding destination to connection pool: %s\n", addr)
-				pool.addConn(addr)
+				log.Printf("Adding destination to connection pool: %s\n", dest.name)
+				pool.addConn(dest)
 			} else {
 				// If this connection is still in the pool, we're
 				// likely here due to a temporary disconnect.
-				log.Printf("Reconnected to destination: %s\n", addr)
+				log.Printf("Reconnected to destination: %s\n", dest.name)
 			}
 
 			return conn, nil
@@ -291,23 +159,29 @@ func establishConn(addr string) (net.Conn, error) {
 // destinationWriter requests a connection.
 // It dequeues from the connection outbound buffer
 // and writes to the respective destination.
-func destinationWriter(addr string) {
-	pool.register(addr)
-	conn, err := establishConn(addr)
+func destinationWriter(dest destination) {
+
+	// Get initial connection.
+	pool.register(dest)
+	conn, err := establishConn(dest)
 	if err != nil {
 		return
 	}
 	defer conn.Close()
 
-	for m := range pool.Conns[addr] {
+	// Dequeue from destination outbound queue
+	// and send.
+	for m := range pool.Conns[dest.name] {
 		_, err := fmt.Fprintln(conn, *m)
+		// If we fail to send, reload the message into the
+		// queue and attempt to reconnect.
 		if err != nil {
-			pool.Conns[addr] <- m
-			log.Printf("Destination %s error: %s\n", addr, err)
+			pool.Conns[dest.name] <- m
+			log.Printf("Destination %s error: %s\n", dest.name, err)
 
 			// Wait on a connection. If the destination isn't
 			// registered, err and close this writer.
-			newConn, err := establishConn(addr)
+			newConn, err := establishConn(dest)
 			if err != nil {
 				break
 			} else {
@@ -318,7 +192,7 @@ func destinationWriter(addr string) {
 
 }
 
-func outputGraphite(q chan []*string, ready chan bool) {
+func outputHandler(q chan []*string, ready chan bool) {
 	go retryMessageHandler()
 
 	destinations := strings.Split(options.destinations, ",")
@@ -327,11 +201,18 @@ func outputGraphite(q chan []*string, ready chan bool) {
 			continue
 		}
 
-		go destinationWriter(addr)
+		dest, err := parseDestination(addr)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		go destinationWriter(dest)
 	}
 
 	// In case we want any initialization to block.
 	// Lazily give writers a head start before the listener.
+	// TODO just add WGs.
 	time.Sleep(1 * time.Second)
 	ready <- true
 

@@ -44,7 +44,13 @@ func putdest(r Request) string {
 		return fmt.Sprintf("Must provide destination\n")
 	}
 
-	go destinationWriter(r.param)
+	dest, err := parseDestination(r.param)
+	if err != nil {
+		return fmt.Sprintln(err)
+	}
+
+	go destinationWriter(dest)
+
 	return fmt.Sprintf("Registered destination: %s\n", r.param)
 }
 
@@ -53,7 +59,13 @@ func deldest(r Request) string {
 		return fmt.Sprintf("Must provide destination\n")
 	}
 
-	pool.unregister(r.param)
+	dest, err := parseDestination(r.param)
+	if err != nil {
+		return fmt.Sprintln(err)
+	}
+
+	pool.unregister(dest)
+
 	return fmt.Sprintf("Unregistered destination: %s\n", r.param)
 }
 
