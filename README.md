@@ -1,11 +1,11 @@
 # polymur
 
-Undergoing active testing / dev. May have undiscovered [bugs](https://github.com/jamiealquiza/polymur/issues).
-Definitely build this with Go 1.5.x.
+Undergoing active dev. May have [issues](https://github.com/jamiealquiza/polymur/issues).
+Definitely build this with at least Go 1.5.x.
 
 ### Overview
 
-Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimited messages) from tools like Collectd or Statsd, and either replicates, round-robins or hash routes the output to one or more destinations. Polymur is efficient at terminating many thousands of connections and provides in-line buffering (should a destination become temporarily unavailable), runtime destination manipulation ("Let's mirror all our production metrics to x.x.x.x"), and failover redistribution (in round-robin mode: if node C fails, redistribute in-flight metrics for this destination to nodes A and B).
+Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimited messages) from tools like Collectd or Statsd, and either mirrors (broadcast) or hash routes the output to one or more destinations - including more Polymur instances or native Graphite carbon-cache instances. Polymur is efficient at terminating many thousands of connections and provides in-line buffering, runtime destination manipulation ("Let's mirror all our production metrics to x.x.x.x"), and failover redistribution (in hash-routing mode: if node C fails, redistribute in-flight metrics for this destination to nodes A and B).
 
 Polymur was created to introduce more flexibility into the way metrics streams are managed and to reduce the total number of components needed to operate Graphite deployments. It's built in a highly concurrent fashion and doesn't need multiple instances per-node with a local load-balancer if it's being used as a Carbon relay upstream from your Graphite servers. If it's being used as a Carbon relay on your Graphite server to distribute metrics to Carbon-cache daemons, daemons can self register themselves on start using Polymur's simple API.
 
@@ -43,7 +43,7 @@ Usage of ./polymur:
   -destinations string
     	Comma-delimited list of ip:port destinations
   -distribution string
-    	Destination distribution methods: broadcast, balance-rr, balance-hr (default "broadcast")
+    	Destination distribution methods: broadcast, hash-route (default "broadcast")
   -listen-addr string
     	Polymur listen address (default "0.0.0.0")
   -listen-port string
@@ -82,6 +82,13 @@ Listening for incoming metrics on `0.0.0.0:2003` and mirroring to `10.0.5.20:200
 
 Polymur started with no initial destinations:
 <pre>
+./polymur -listen-port="2003"
+2015/05/14 09:09:15 Metrics listener started: 0.0.0.0:2003
+2015/05/14 09:09:15 API started: localhost:2030
+2015/05/14 09:09:15 Runstats started: localhost:2020
+</pre>
+
+<pre>
 % echo getdest | nc localhost 2030
 {
  "active": [],
@@ -93,7 +100,14 @@ Add destination at runtime:
 <pre>
 % echo putdest localhost:6020 | nc localhost 2030          
 Registered destination: localhost:6020
+</pre>
 
+<pre>
+2015/05/14 09:09:23 Registered destination localhost:6020
+2015/05/14 09:09:23 Adding destination to connection pool: localhost:6020
+</pre>
+
+<pre>
 % echo getdest | nc localhost 2030
 {
  "active": [
@@ -105,15 +119,6 @@ Registered destination: localhost:6020
 }
 </pre>
 
-Polymur output:
-<pre>
-./polymur -distribution="balance-rr" -listen-port="2003"
-2015/05/14 09:09:15 Metrics listener started: 0.0.0.0:2003
-2015/05/14 09:09:15 API started: localhost:2030
-2015/05/14 09:09:15 Runstats started: localhost:2020
-2015/05/14 09:09:23 Registered destination localhost:6020
-2015/05/14 09:09:23 Adding destination to connection pool: localhost:6020
-</pre>
 
 ### Internals
 
@@ -124,12 +129,12 @@ Terminology:
 - **Registered**: a candidate destination loaded into Polymur, but not necessarily active
 - **Connection**: a registered destination with an active connection
 - **Connection pool**: global list of all active connections and their respective destination queue
-- **Distribution mode**: how metrics are distributed to destinations (round-robin, broadcast)
-- **Retry queue**: messages that couldn't be sent to their destination are loaded into the retry queue (e.g. a round-robin node is removed from the connection pool)
+- **Distribution mode**: how metrics are distributed to destinations (broadcast, hash-route)
+- **Retry queue**: messages that couldn't be sent to their destination are loaded into the retry queue and retried on remaining active connections
 
 Polymur listens on the configured addr:port for incoming connections, each connection handled in a dedicated Goroutine. A connection Goroutine reads the inbound stream and allocates a message string at LF boundaries. Messages are accumulated as slices of string pointers and flushed to a shared inbound queue, either after 5 seconds or when the slice hits 30 elements (to reduce [channel operations](https://grey-boundary.io/concurrent-communication-performance-in-go/)). 
 
-Message batches from the inbound queue are distributed (broadcast, round-robin or hash-routed) to a dedicated queue for each output destination. Destination output is also handled using dedicated Goroutines, where temporary latency or full disconnects to one destination will not impact write performance to another destination. If a destination becomes unreachable, the endpoint will be retried at 15 second intervals while the respective destination queue buffers incoming messages. Per destination queue capacity is determined by the `-queue-cap` directive. Any destination queue with an outstanding length greater than 0 will be logged to stdout. Any destination queue that exceeds the configured `-queue-cap` will not receive any new messages until the queue is cleared. If the distribution mode is round-robin, three consecutive reconnect attempt failures will result in removing the connection from the connection pool and redistributing any in-flight messages to the retry queue.
+Message batches from the inbound queue are distributed (broadcast or hash-routed) to a dedicated queue for each output destination. Destination output is also handled using dedicated Goroutines, where transient latency or full disconnects to one destination will not impact write performance to another destination. If a destination becomes unreachable, the endpoint will be retried at 10 second intervals while the respective destination queue buffers incoming messages. Per destination queue capacity is determined by the `-queue-cap` directive. Any destination queue with an outstanding length greater than 0 will be logged to stdout. Any destination queue that exceeds the configured `-queue-cap` will not receive any new messages until the queue is cleared. If the distribution mode is round-robin, three consecutive reconnect attempt failures will result in removing the connection from the connection pool and redistributing any in-flight messages to the retry queue.
 
 ### FAQ
 

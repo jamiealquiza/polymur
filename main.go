@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"runtime"
 	"syscall"
 
 	"github.com/jamiealquiza/polymur/runstats"
@@ -44,16 +43,14 @@ func init() {
 	flag.StringVar(&options.apiPort, "api-port", "2030", "API listen port")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost", "runstats listen address")
 	flag.StringVar(&options.statPort, "stat-port", "2020", "runstats listen port")
-	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity to any single destination")
+	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity per destination")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
-	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, balance-rr, balance-hr")
+	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, hash-route")
 	flag.Parse()
 
 	messageIncomingQueue = make(chan []*string, 512)
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
 // Handles signal events.
@@ -71,7 +68,7 @@ func main() {
 		go outputConsole(messageIncomingQueue)
 		ready <- true
 	} else {
-		go outputGraphite(messageIncomingQueue, ready)
+		go outputHandler(messageIncomingQueue, ready)
 	}
 
 	<-ready

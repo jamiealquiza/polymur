@@ -1,13 +1,13 @@
 package runstats
 
 import (
-	"runtime"
 	"encoding/json"
-	"net"
 	"fmt"
-	"log"
-	"os"
 	"io"
+	"log"
+	"net"
+	"os"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -16,11 +16,11 @@ var (
 	startTime = time.Now()
 )
 
-func WriteGraphite(c chan[]*string, i int) {
+func WriteGraphite(c chan []*string, i int) {
 	interval := time.Tick(time.Duration(i) * time.Second)
 	hostname, _ := os.Hostname()
 	for {
-		<- interval
+		<-interval
 		now := time.Now()
 		ts := int64(now.Unix())
 		metrics := []*string{}
@@ -80,7 +80,7 @@ func reqHandler(conn net.Conn, serviceInfo map[string]interface{}) {
 	default:
 		m := fmt.Sprintf("Not a command: %s\n", req)
 		conn.Write([]byte(m))
-	}	
+	}
 }
 
 // Generate stats response.
