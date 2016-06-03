@@ -47,7 +47,7 @@ func init() {
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
-	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, `balance-hr")
+	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, `hash-route")
 	flag.Parse()
 
 	messageIncomingQueue = make(chan []*string, 512)

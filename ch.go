@@ -17,7 +17,7 @@ type HashRing struct {
 }
 
 type node struct {
-	nodeId int
+	nodeId   int
 	nodeName string
 }
 
@@ -36,7 +36,6 @@ func (n nodeList) Swap(i, j int) {
 	n[i], n[j] = n[j], n[i]
 }
 
-
 // Hash ring operations.
 
 func (h *HashRing) AddNode(dest destination) {
@@ -44,7 +43,7 @@ func (h *HashRing) AddNode(dest destination) {
 
 	// This replicates the destination key setup in
 	// the carbon-cache implementation. It's a string composed of the
-	// (destination IP, instance) tuple + :replica count. E.g. "('127.0.0.1', 'a'):0" for 
+	// (destination IP, instance) tuple + :replica count. E.g. "('127.0.0.1', 'a'):0" for
 	// the first replica for instance a listening on 127.0.0.1.
 	// We statically append '0' since polymur isn't doing any replication handling.
 	destString := fmt.Sprintf("('%s', '%s'):0", dest.ip, dest.id)
@@ -55,10 +54,10 @@ func (h *HashRing) AddNode(dest destination) {
 
 	// Debugging hash ring.
 	/*
-	for _, n := range h.nodes {
-		fmt.Printf("%d - %s, ", n.nodeId, n.nodeName)
-	}
-	fmt.Println()
+		for _, n := range h.nodes {
+			fmt.Printf("%d - %s, ", n.nodeId, n.nodeName)
+		}
+		fmt.Println()
 	*/
 
 	h.Unlock()

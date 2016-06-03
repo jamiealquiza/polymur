@@ -9,22 +9,20 @@ import (
 	"time"
 )
 
-
 var (
 	pool = &Pool{
-		Ring: 		&HashRing{},
+		Ring:       &HashRing{},
 		Conns:      make(map[string]chan *string),
 		Registered: make(map[string]time.Time),
 	}
 
 	distributionMethod = map[string]func([]*string){
 		"broadcast":  broadcast,
-		"balance-hr": balanceHR,
+		"hash-route": hashRoute,
 	}
 
 	retryQueue = make(chan []*string, 4096)
 )
-
 
 func broadcast(messages []*string) {
 	// For each message in the batch,
@@ -42,7 +40,7 @@ func broadcast(messages []*string) {
 	}
 }
 
-func balanceHR(messages []*string) {	
+func hashRoute(messages []*string) {
 	for _, m := range messages {
 
 		key := strings.Fields(*m)[0]

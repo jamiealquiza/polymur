@@ -2,16 +2,16 @@ package main
 
 import (
 	"fmt"
-	"sync"
-	"strings"
 	"log"
+	"strings"
+	"sync"
 	"time"
 )
 
 type destination struct {
-	ip string
+	ip   string
 	port string
-	id string
+	id   string
 	addr string
 	name string
 }
@@ -29,14 +29,14 @@ func parseDestination(s string) (destination, error) {
 		return d, fmt.Errorf("Destination %s not valid\n", s)
 	}
 
-	d.addr = d.ip+":"+d.port
+	d.addr = d.ip + ":" + d.port
 
 	return d, nil
 }
 
 type Pool struct {
 	sync.Mutex
-	Ring 	*HashRing
+	Ring       *HashRing
 	Conns      map[string]chan *string
 	Registered map[string]time.Time
 }
