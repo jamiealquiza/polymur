@@ -53,6 +53,14 @@ func (h *HashRing) AddNode(dest destination) {
 	h.nodes = append(h.nodes, &node{nodeId: key, nodeName: dest.name})
 	sort.Sort(h.nodes)
 
+	// Debugging hash ring.
+	/*
+	for _, n := range h.nodes {
+		fmt.Printf("%d - %s, ", n.nodeId, n.nodeName)
+	}
+	fmt.Println()
+	*/
+
 	h.Unlock()
 }
 
@@ -78,8 +86,9 @@ func (h *HashRing) GetNode(k string) string {
 
 	// Hash the reference key.
 	hk := getHashKey(k)
+
 	// Get index in the ring.
-	i := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].nodeId >= hk })
+	i := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].nodeId >= hk }) % len(h.nodes)
 
 	node := h.nodes[i].nodeName
 
