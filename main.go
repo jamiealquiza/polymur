@@ -28,7 +28,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jamiealquiza/polymur/runstats"
+	"github.com/jamiealquiza/runstats"
 )
 
 var (
@@ -94,12 +94,12 @@ func main() {
 
 	<-ready
 
-	sentCnt := NewStatser()
+	sentCnt := &Statser{}
 	go statsTracker(sentCnt)
 	go listener(sentCnt)
 	go api(options.apiAddr, options.apiPort)
 	if options.metricsFlush > 0 {
-		go runstats.WriteGraphite(messageIncomingQueue, options.metricsFlush)
+		go runstats.WriteGraphite(messageIncomingQueue, options.metricsFlush, sentCnt)
 	}
 	go runstats.Start(options.statAddr, options.statPort)
 

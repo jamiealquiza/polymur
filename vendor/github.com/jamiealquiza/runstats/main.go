@@ -37,7 +37,11 @@ var (
 	startTime = time.Now()
 )
 
-func WriteGraphite(c chan []*string, i int) {
+type Statser interface {
+	GetRate() float64
+}
+
+func WriteGraphite(c chan []*string, i int, s Statser) {
 	interval := time.Tick(time.Duration(i) * time.Second)
 	hostname, _ := os.Hostname()
 	for {
@@ -45,39 +49,44 @@ func WriteGraphite(c chan []*string, i int) {
 		now := time.Now()
 		ts := int64(now.Unix())
 		metrics := []*string{}
-		stats := buildStats(nil)
+		stats := buildStats()
 
 		for k, v := range stats["runtime-meminfo"] {
 			value := fmt.Sprintf("%s.polymur.runtime.%s %d %d", hostname, k, v, ts)
 			metrics = append(metrics, &value)
 		}
 
+		rate := fmt.Sprintf("%s.polymur.rate %.2f %d", hostname, s.GetRate(), ts)
+		metrics = append(metrics, &rate)
+
+		// Drop the metrics into Polymur's
+		// incoming channel.
 		c <- metrics
 	}
 }
 
-func Start(address, port string, serviceInfo map[string]interface{}) {
+func Start(address, port string) {
 	log.Printf("Runstats started: %s:%s\n",
 		address,
 		port)
 
 	server, err := net.Listen("tcp", address+":"+port)
 	if err != nil {
-		log.Fatalf("Listener error: %s\n", err)
+		log.Fatalf("Runstats error: %s\n", err)
 	}
 	defer server.Close()
 
 	for {
 		conn, err := server.Accept()
 		if err != nil {
-			log.Printf("Listener down: %s\n", err)
+			log.Printf("Runstats listener error: %s\n", err)
 			continue
 		}
-		reqHandler(conn, serviceInfo)
+		reqHandler(conn)
 	}
 }
 
-func reqHandler(conn net.Conn, serviceInfo map[string]interface{}) {
+func reqHandler(conn net.Conn) {
 	defer conn.Close()
 	reqBuf := make([]byte, 8)
 	mlen, err := conn.Read(reqBuf)
@@ -88,7 +97,7 @@ func reqHandler(conn net.Conn, serviceInfo map[string]interface{}) {
 	req := strings.TrimSpace(string(reqBuf[:mlen]))
 	switch req {
 	case "stats":
-		r := buildStats(serviceInfo)
+		r := buildStats()
 
 		response, err := json.MarshalIndent(r, "", "  ")
 		if err != nil {
@@ -105,17 +114,13 @@ func reqHandler(conn net.Conn, serviceInfo map[string]interface{}) {
 }
 
 // Generate stats response.
-func buildStats(serviceInfo map[string]interface{}) map[string]map[string]interface{} {
+func buildStats() map[string]map[string]interface{} {
 
 	// Object that will carry all response info.
 	stats := make(map[string]map[string]interface{})
-
-	// Add supplied service info.
-	stats["service"] = make(map[string]interface{})
-	if serviceInfo != nil {
-		stats["service"] = serviceInfo
-	}
+	
 	// Append default service info.
+	stats["service"] = make(map[string]interface{})
 	stats["service"]["start-time"] = startTime.Format(time.RFC3339)
 	uptime := int64(time.Since(startTime).Seconds())
 	stats["service"]["uptime-seconds"] = uptime

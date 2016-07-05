@@ -24,31 +24,37 @@ package main
 import (
 	"log"
 	"time"
+	"sync"
 )
 
 type Statser struct {
-	value chan int64
+	sync.Mutex
+	count int64
+	rate float64
 }
 
-func NewStatser() *Statser {
-	s := &Statser{make(chan int64, 1)}
-	s.init()
-	return s
+func (s *Statser) UpdateCount(v int64) {
+	s.Lock()
+	s.count += v
+	s.Unlock()
 }
 
-func (s *Statser) init() {
-	s.value <- 0
+func (s *Statser) GetCount() int64 {
+	s.Lock()
+	defer s.Unlock()
+	return s.count
 }
 
-func (s *Statser) IncrRecv(v int64) {
-	i := <-s.value
-	s.value <- i + v
+func (s *Statser) UpdateRate(v float64) {
+	s.Lock()
+	s.rate = v
+	s.Unlock()
 }
 
-func (s *Statser) FetchRecv() int64 {
-	i := <-s.value
-	s.value <- i
-	return i
+func (s *Statser) GetRate() float64 {
+	s.Lock()
+	defer s.Unlock()
+	return s.rate
 }
 
 // Outputs periodic info summary.
@@ -64,14 +70,17 @@ func statsTracker(s *Statser) {
 
 		// Inbound rates.
 		lastCnt = currCnt
-		currCnt = s.FetchRecv()
+		currCnt = s.GetCount()
 		deltaCnt := currCnt - lastCnt
 		if deltaCnt > 0 {
+			s.UpdateRate(float64(deltaCnt)/sinceLastInterval)
 			log.Printf("Last %.2fs: Received %d data points | Avg: %.2f/sec. | Inbound queue length: %d\n",
 				sinceLastInterval,
 				deltaCnt,
-				float64(deltaCnt)/sinceLastInterval,
+				s.GetRate(),
 				len(messageIncomingQueue))
+		} else {
+			s.UpdateRate(0)
 		}
 
 		// Outbound queues.
