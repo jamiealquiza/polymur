@@ -101,7 +101,7 @@ func main() {
 	if options.metricsFlush > 0 {
 		go runstats.WriteGraphite(messageIncomingQueue, options.metricsFlush)
 	}
-	go runstats.Start(options.statAddr, options.statPort, nil)
+	go runstats.Start(options.statAddr, options.statPort)
 
 	runControl()
 }
