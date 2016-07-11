@@ -10,7 +10,7 @@
 // furnished to do so, subject to the following conditions:
 //
 // The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
+// all copies or substantial Portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,30 +19,31 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-package main
+package listener
 
 import (
 	"bufio"
 	"log"
 	"net"
 	"time"
+
+	"github.com/jamiealquiza/polymur/statstracker"
 )
 
-func init() {
-	config.batchSize = 30
-	config.flushTimeout = 5
+type ListenerConfig struct {
+	Addr string
+	IncomingQueue chan []*string
 }
 
 // Listens for messages.
-func listener(s *Statser) {
-	log.Printf("Metrics listener started: %s:%s\n",
-		options.addr,
-		options.port)
-	server, err := net.Listen("tcp", options.addr+":"+options.port)
+func ListenTcp(config *ListenerConfig, s *statstracker.Stats) {
+	log.Printf("Metrics listener started: %s\n", config.Addr)
+	server, err := net.Listen("tcp", config.Addr)
 	if err != nil {
 		log.Fatalf("Listener error: %s\n", err)
 	}
 	defer server.Close()
+
 
 	// Connection handler loop.
 	for {
@@ -52,12 +53,12 @@ func listener(s *Statser) {
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		go connectionHandler(conn, s)
+		go connectionHandler(conn, config.IncomingQueue, s)
 	}
 }
 
-func connectionHandler(c net.Conn, s *Statser) {
-	flushTimeout := time.NewTicker(time.Duration(config.flushTimeout) * time.Second)
+func connectionHandler(c net.Conn, q chan []*string, s *statstracker.Stats) {
+	flushTimeout := time.NewTicker(5*time.Second)
 	defer flushTimeout.Stop()
 
 	messages := []*string{}
@@ -71,7 +72,7 @@ func connectionHandler(c net.Conn, s *Statser) {
 		select {
 		case <-flushTimeout.C:
 			if len(messages) > 0 {
-				messageIncomingQueue <- messages
+				q <- messages
 				messages = []*string{}
 			}
 			messages = []*string{}
@@ -83,17 +84,17 @@ func connectionHandler(c net.Conn, s *Statser) {
 		s.UpdateCount(1)
 
 		// Drop message and respond if the incoming queue is at capacity.
-		if len(messageIncomingQueue) >= options.queuecap {
-			log.Printf("Queue capacity %d reached\n", options.queuecap)
+		if len(q) >= 512 {
+			log.Printf("Incoming queue capacity %d reached\n", 512)
 			// Impose flow control. This needs to be significantly smarter.
 			time.Sleep(1 * time.Second)
 		}
 
 		// If this puts us at the batchSize threshold, enqueue
-		// into the messageIncomingQueue.
-		if len(messages)+1 >= config.batchSize {
+		// into the q.
+		if len(messages)+1 >= 30 {
 			messages = append(messages, &m)
-			messageIncomingQueue <- messages
+			q <- messages
 			messages = []*string{}
 		} else {
 			// Otherwise, just append message to current batch.
@@ -102,6 +103,6 @@ func connectionHandler(c net.Conn, s *Statser) {
 
 	}
 
-	messageIncomingQueue <- messages
+	q <- messages
 
 }

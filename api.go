@@ -19,7 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-package main
+package polymur
 
 import (
 	"bufio"
@@ -28,6 +28,8 @@ import (
 	"log"
 	"net"
 	"strings"
+	
+	"github.com/jamiealquiza/polymur/pool"
 )
 
 var (
@@ -39,6 +41,7 @@ var (
 )
 
 type Request struct {
+	pool *pool.Pool
 	command string
 	param   string
 }
@@ -46,11 +49,11 @@ type Request struct {
 func getdest(r Request) string {
 	dests := make(map[string]interface{})
 	// Get all registered destinations.
-	dests["registered"] = pool.Registered
+	dests["registered"] = r.pool.Registered
 
 	// Get all active.
 	active := []string{}
-	for k, _ := range pool.Conns {
+	for k, _ := range r.pool.Conns {
 		active = append(active, k)
 	}
 	dests["active"] = active
@@ -65,12 +68,14 @@ func putdest(r Request) string {
 		return fmt.Sprintf("Must provide destination\n")
 	}
 
-	dest, err := parseDestination(r.param)
+	dest, err := pool.ParseDestination(r.param)
 	if err != nil {
 		return fmt.Sprintln(err)
 	}
 
-	go destinationWriter(dest)
+	// TODO replace this func with an
+	// add destination method on the pool.
+	go destinationWriter(r.pool, dest)
 
 	return fmt.Sprintf("Registered destination: %s\n", r.param)
 }
@@ -80,22 +85,20 @@ func deldest(r Request) string {
 		return fmt.Sprintf("Must provide destination\n")
 	}
 
-	dest, err := parseDestination(r.param)
+	dest, err := pool.ParseDestination(r.param)
 	if err != nil {
 		return fmt.Sprintln(err)
 	}
 
-	pool.unregister(dest)
+	r.pool.Unregister(dest)
 
 	return fmt.Sprintf("Unregistered destination: %s\n", r.param)
 }
 
-func api(address, port string) {
-	log.Printf("API started: %s:%s\n",
-		address,
-		port)
+func Api(p *pool.Pool, address string) {
+	log.Printf("API started: %s\n", address)
 
-	server, err := net.Listen("tcp", address+":"+port)
+	server, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("Listener error: %s\n", err)
 	}
@@ -107,11 +110,11 @@ func api(address, port string) {
 			log.Printf("API error: %s\n", err)
 			continue
 		}
-		apiHandler(conn)
+		apiHandler(p, conn)
 	}
 }
 
-func apiHandler(conn net.Conn) {
+func apiHandler(p *pool.Pool, conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 
@@ -125,6 +128,8 @@ func apiHandler(conn net.Conn) {
 	if len(input) > 1 {
 		request.param = input[1]
 	}
+	
+	request.pool = p
 
 	if command, valid := commands[request.command]; valid {
 		response := command(request)

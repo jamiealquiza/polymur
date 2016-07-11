@@ -65,12 +65,10 @@ func WriteGraphite(c chan []*string, i int, s Statser) {
 	}
 }
 
-func Start(address, port string) {
-	log.Printf("Runstats started: %s:%s\n",
-		address,
-		port)
+func Start(address string) {
+	log.Printf("Runstats started: %s\n", address)
 
-	server, err := net.Listen("tcp", address+":"+port)
+	server, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("Runstats error: %s\n", err)
 	}

@@ -19,46 +19,48 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-package main
+package statstracker
 
 import (
 	"log"
 	"time"
 	"sync"
+	
+	"github.com/jamiealquiza/polymur/pool"
 )
 
-type Statser struct {
+type Stats struct {
 	sync.Mutex
 	count int64
 	rate float64
 }
 
-func (s *Statser) UpdateCount(v int64) {
+func (s *Stats) UpdateCount(v int64) {
 	s.Lock()
 	s.count += v
 	s.Unlock()
 }
 
-func (s *Statser) GetCount() int64 {
+func (s *Stats) GetCount() int64 {
 	s.Lock()
 	defer s.Unlock()
 	return s.count
 }
 
-func (s *Statser) UpdateRate(v float64) {
+func (s *Stats) UpdateRate(v float64) {
 	s.Lock()
 	s.rate = v
 	s.Unlock()
 }
 
-func (s *Statser) GetRate() float64 {
+func (s *Stats) GetRate() float64 {
 	s.Lock()
 	defer s.Unlock()
 	return s.rate
 }
 
 // Outputs periodic info summary.
-func statsTracker(s *Statser) {
+func StatsTracker(pool *pool.Pool, s *Stats) {
 	tick := time.Tick(5 * time.Second)
 	lastInterval := time.Now()
 	var currCnt, lastCnt int64
@@ -74,11 +76,10 @@ func statsTracker(s *Statser) {
 		deltaCnt := currCnt - lastCnt
 		if deltaCnt > 0 {
 			s.UpdateRate(float64(deltaCnt)/sinceLastInterval)
-			log.Printf("Last %.2fs: Received %d data points | Avg: %.2f/sec. | Inbound queue length: %d\n",
+			log.Printf("Last %.2fs: Received %d data points | Avg: %.2f/sec.\n",
 				sinceLastInterval,
 				deltaCnt,
-				s.GetRate(),
-				len(messageIncomingQueue))
+				s.GetRate())
 		} else {
 			s.UpdateRate(0)
 		}
@@ -88,7 +89,7 @@ func statsTracker(s *Statser) {
 		for dest, outboundQueue := range pool.Conns {
 			currLen := len(outboundQueue)
 			switch {
-			case currLen == options.queuecap:
+			case currLen == pool.QueueCap:
 				log.Printf("Destination %s queue is at capacity (%d) - further messages will be dropped", dest, currLen)
 			case currLen > 0:
 				log.Printf("Destination %s queue length: %d\n", dest, currLen)
@@ -97,7 +98,7 @@ func statsTracker(s *Statser) {
 		pool.Unlock()
 
 		// Misc. internal queues.
-		if l := len(retryQueue); l > 0 {
+		if l := len(pool.RetryQueue); l > 0 {
 			log.Printf("Retry message queue length: %d\n", l)
 		}
 

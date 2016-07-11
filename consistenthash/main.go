@@ -19,7 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-package main
+package consistenthash
 
 import (
 	"crypto/md5"
@@ -59,37 +59,22 @@ func (n nodeList) Swap(i, j int) {
 
 // Hash ring operations.
 
-func (h *HashRing) AddNode(dest destination) {
+func (h *HashRing) AddNode(keyname, name  string) {
 	h.Lock()
 
-	// This replicates the destination key setup in
-	// the carbon-cache implementation. It's a string composed of the
-	// (destination IP, instance) tuple + :replica count. E.g. "('127.0.0.1', 'a'):0" for
-	// the first replica for instance a listening on 127.0.0.1.
-	// We statically append '0' since polymur isn't doing any replication handling.
-	destString := fmt.Sprintf("('%s', '%s'):0", dest.ip, dest.id)
-
-	key := getHashKey(destString)
-	h.nodes = append(h.nodes, &node{nodeId: key, nodeName: dest.name})
+	key := getHashKey(keyname)
+	h.nodes = append(h.nodes, &node{nodeId: key, nodeName: name})
 	sort.Sort(h.nodes)
-
-	// Debugging hash ring.
-	/*
-		for _, n := range h.nodes {
-			fmt.Printf("%d - %s, ", n.nodeId, n.nodeName)
-		}
-		fmt.Println()
-	*/
 
 	h.Unlock()
 }
 
-func (h *HashRing) RemoveNode(dest destination) {
+func (h *HashRing) RemoveNode(name string) {
 	h.Lock()
 
 	newNodes := []*node{}
 	for _, n := range h.nodes {
-		if n.nodeName != dest.addr {
+		if n.nodeName != name {
 			newNodes = append(newNodes, n)
 		}
 	}

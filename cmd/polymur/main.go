@@ -28,19 +28,18 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jamiealquiza/polymur"
+	"github.com/jamiealquiza/polymur/pool"
+	"github.com/jamiealquiza/polymur/listener"
+	"github.com/jamiealquiza/polymur/statstracker"
 	"github.com/jamiealquiza/runstats"
 )
 
 var (
-	messageIncomingQueue = make(chan []*string, options.queuecap)
-
 	options struct {
 		addr         string
-		port         string
 		apiAddr      string
-		apiPort      string
 		statAddr     string
-		statPort     string
 		queuecap     int
 		console      bool
 		destinations string
@@ -48,30 +47,19 @@ var (
 		distribution string
 	}
 
-	// Internals, may be updated dynamically by the app.
-	config struct {
-		batchSize    int
-		flushTimeout int
-	}
-
 	sig_chan = make(chan os.Signal)
 )
 
 func init() {
-	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0", "Polymur listen address")
-	flag.StringVar(&options.port, "listen-port", "2003", "Polymur listen port")
-	flag.StringVar(&options.apiAddr, "api-addr", "localhost", "API listen address")
-	flag.StringVar(&options.apiPort, "api-port", "2030", "API listen port")
-	flag.StringVar(&options.statAddr, "stat-addr", "localhost", "runstats listen address")
-	flag.StringVar(&options.statPort, "stat-port", "2020", "runstats listen port")
+	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0:2003", "Polymur listen address")
+	flag.StringVar(&options.apiAddr, "api-addr", "localhost:2030", "API listen address")
+	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
 	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity per destination")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
 	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, hash-route")
 	flag.Parse()
-
-	messageIncomingQueue = make(chan []*string, 512)
 }
 
 // Handles signal events.
@@ -85,23 +73,49 @@ func runControl() {
 func main() {
 	ready := make(chan bool, 1)
 
+	incomingQueue := make(chan []*string, 512)
+
+	pool := pool.NewPool()
+
+	// Output writer.
 	if options.console {
-		go outputConsole(messageIncomingQueue)
+		go polymur.OutputConsole(incomingQueue)
 		ready <- true
 	} else {
-		go outputHandler(messageIncomingQueue, ready)
+		go polymur.OutputTcp(
+			pool,
+			&polymur.OutputTcpConfig{
+			  Destinations: options.destinations,
+			  Distribution: options.distribution,
+			  IncomingQueue: incomingQueue,
+			  QueueCap: options.queuecap,
+			},
+			ready)
 	}
 
 	<-ready
 
-	sentCnt := &Statser{}
-	go statsTracker(sentCnt)
-	go listener(sentCnt)
-	go api(options.apiAddr, options.apiPort)
+	// Stat counters.
+	sentCntr := &statstracker.Stats{}
+	go statstracker.StatsTracker(pool, sentCntr)
+
+	// TCP Listener.
+	go listener.ListenTcp(&listener.ListenerConfig{
+		  Addr: options.addr,
+		  IncomingQueue: incomingQueue,
+		},
+		sentCntr)
+
+	// API listener.
+	go polymur.Api(pool, options.apiAddr)
+
+	// Polymur stats writer.
 	if options.metricsFlush > 0 {
-		go runstats.WriteGraphite(messageIncomingQueue, options.metricsFlush, sentCnt)
+		go runstats.WriteGraphite(incomingQueue, options.metricsFlush, sentCntr)
 	}
-	go runstats.Start(options.statAddr, options.statPort)
+
+	// Runtime stats listener.
+	go runstats.Start(options.statAddr)
 
 	runControl()
 }
