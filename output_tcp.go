@@ -28,17 +28,16 @@ import (
 	"net"
 	"strings"
 	"time"
-	
+
 	"github.com/jamiealquiza/polymur/pool"
 )
 
 type OutputTcpConfig struct {
-	Destinations string
-	Distribution string
+	Destinations  string
+	Distribution  string
 	IncomingQueue chan []*string
-	QueueCap int
+	QueueCap      int
 }
-
 
 func OutputTcp(p *pool.Pool, config *OutputTcpConfig, ready chan bool) {
 	p.Lock()

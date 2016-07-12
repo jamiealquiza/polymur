@@ -28,7 +28,7 @@ import (
 	"log"
 	"net"
 	"strings"
-	
+
 	"github.com/jamiealquiza/polymur/pool"
 )
 
@@ -41,7 +41,7 @@ var (
 )
 
 type Request struct {
-	pool *pool.Pool
+	pool    *pool.Pool
 	command string
 	param   string
 }
@@ -128,7 +128,7 @@ func apiHandler(p *pool.Pool, conn net.Conn) {
 	if len(input) > 1 {
 		request.param = input[1]
 	}
-	
+
 	request.pool = p
 
 	if command, valid := commands[request.command]; valid {

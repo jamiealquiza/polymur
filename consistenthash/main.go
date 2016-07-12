@@ -60,7 +60,7 @@ func (n nodeList) Swap(i, j int) {
 
 // Hash ring operations.
 
-func (h *HashRing) AddNode(keyname, name  string) {
+func (h *HashRing) AddNode(keyname, name string) {
 	h.Lock()
 
 	key := getHashKey(keyname)

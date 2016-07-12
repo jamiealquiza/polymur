@@ -116,7 +116,7 @@ func buildStats() map[string]map[string]interface{} {
 
 	// Object that will carry all response info.
 	stats := make(map[string]map[string]interface{})
-	
+
 	// Append default service info.
 	stats["service"] = make(map[string]interface{})
 	stats["service"]["start-time"] = startTime.Format(time.RFC3339)

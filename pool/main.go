@@ -41,13 +41,13 @@ type Destination struct {
 
 type Pool struct {
 	sync.Mutex
-	Ring       *consistenthash.HashRing
-	Conns      map[string]chan *string
-	Registered map[string]time.Time
+	Ring               *consistenthash.HashRing
+	Conns              map[string]chan *string
+	Registered         map[string]time.Time
 	DistributionMethod map[string]func(*Pool, []*string)
-	Distribution string
-	QueueCap int
-	RetryQueue chan []*string
+	Distribution       string
+	QueueCap           int
+	RetryQueue         chan []*string
 }
 
 func NewPool() *Pool {
@@ -56,8 +56,8 @@ func NewPool() *Pool {
 		Conns:      make(map[string]chan *string),
 		Registered: make(map[string]time.Time),
 		DistributionMethod: map[string]func(*Pool, []*string){
-		  "broadcast":  (*Pool).broadcast,
-		  "hash-route": (*Pool).hashRoute,
+			"broadcast":  (*Pool).broadcast,
+			"hash-route": (*Pool).hashRoute,
 		},
 		RetryQueue: make(chan []*string, 4096),
 	}

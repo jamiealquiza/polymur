@@ -23,16 +23,16 @@ package statstracker
 
 import (
 	"log"
-	"time"
 	"sync"
-	
+	"time"
+
 	"github.com/jamiealquiza/polymur/pool"
 )
 
 type Stats struct {
 	sync.Mutex
 	count int64
-	rate float64
+	rate  float64
 }
 
 func (s *Stats) UpdateCount(v int64) {
@@ -75,7 +75,7 @@ func StatsTracker(pool *pool.Pool, s *Stats) {
 		currCnt = s.GetCount()
 		deltaCnt := currCnt - lastCnt
 		if deltaCnt > 0 {
-			s.UpdateRate(float64(deltaCnt)/sinceLastInterval)
+			s.UpdateRate(float64(deltaCnt) / sinceLastInterval)
 			log.Printf("Last %.2fs: Received %d data points | Avg: %.2f/sec.\n",
 				sinceLastInterval,
 				deltaCnt,

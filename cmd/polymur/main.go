@@ -29,8 +29,8 @@ import (
 	"syscall"
 
 	"github.com/jamiealquiza/polymur"
-	"github.com/jamiealquiza/polymur/pool"
 	"github.com/jamiealquiza/polymur/listener"
+	"github.com/jamiealquiza/polymur/pool"
 	"github.com/jamiealquiza/polymur/statstracker"
 	"github.com/jamiealquiza/runstats"
 )
@@ -85,10 +85,10 @@ func main() {
 		go polymur.OutputTcp(
 			pool,
 			&polymur.OutputTcpConfig{
-			  Destinations: options.destinations,
-			  Distribution: options.distribution,
-			  IncomingQueue: incomingQueue,
-			  QueueCap: options.queuecap,
+				Destinations:  options.destinations,
+				Distribution:  options.distribution,
+				IncomingQueue: incomingQueue,
+				QueueCap:      options.queuecap,
 			},
 			ready)
 	}
@@ -101,9 +101,9 @@ func main() {
 
 	// TCP Listener.
 	go listener.ListenTcp(&listener.ListenerConfig{
-		  Addr: options.addr,
-		  IncomingQueue: incomingQueue,
-		},
+		Addr:          options.addr,
+		IncomingQueue: incomingQueue,
+	},
 		sentCntr)
 
 	// API listener.

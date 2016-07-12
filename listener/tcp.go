@@ -31,7 +31,7 @@ import (
 )
 
 type ListenerConfig struct {
-	Addr string
+	Addr          string
 	IncomingQueue chan []*string
 }
 
@@ -43,7 +43,6 @@ func ListenTcp(config *ListenerConfig, s *statstracker.Stats) {
 		log.Fatalf("Listener error: %s\n", err)
 	}
 	defer server.Close()
-
 
 	// Connection handler loop.
 	for {
@@ -58,7 +57,7 @@ func ListenTcp(config *ListenerConfig, s *statstracker.Stats) {
 }
 
 func connectionHandler(c net.Conn, q chan []*string, s *statstracker.Stats) {
-	flushTimeout := time.NewTicker(5*time.Second)
+	flushTimeout := time.NewTicker(5 * time.Second)
 	defer flushTimeout.Stop()
 
 	messages := []*string{}
