@@ -28,7 +28,7 @@ Real world load reduction - two carbon-relay daemons behind haproxy being replac
 ### Installation
 
 - `go get github.com/jamiealquiza/polymur`
-- `go install github.com/jamiealquiza/polymur`
+- `go install github.com/jamiealquiza/polymur/cmd/polymur`
 - Binary will be found at `$GOPATH/bin/polymur`
 
 ### Usage
@@ -36,27 +36,21 @@ Real world load reduction - two carbon-relay daemons behind haproxy being replac
 <pre>
 Usage of ./polymur:
   -api-addr string
-    	API listen address (default "localhost")
-  -api-port string
-    	API listen port (default "2030")
+        API listen address (default "localhost:2030")
   -console-out
-    	Dump output to console
+        Dump output to console
   -destinations string
-    	Comma-delimited list of ip:port destinations
+        Comma-delimited list of ip:port destinations
   -distribution string
-    	Destination distribution methods: broadcast, hash-route (default "broadcast")
+        Destination distribution methods: broadcast, hash-route (default "broadcast")
   -listen-addr string
-    	Polymur listen address (default "0.0.0.0")
-  -listen-port string
-    	Polymur listen port (default "2003")
+        Polymur listen address (default "0.0.0.0:2003")
   -metrics-flush int
-    	Graphite flush interval for runtime metrics (0 is disabled)
+        Graphite flush interval for runtime metrics (0 is disabled)
   -queue-cap int
-    	In-flight message queue capacity to any single destination (default 4096)
+        In-flight message queue capacity per destination (default 4096)
   -stat-addr string
-    	runstats listen address (default "localhost")
-  -stat-port string
-    	runstats listen port (default "2020")
+        runstats listen address (default "localhost:2020")
 </pre>
 
 ### Examples
