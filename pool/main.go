@@ -27,7 +27,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	
+
 	"github.com/jamiealquiza/polymur/consistenthash"
 )
 
@@ -87,7 +87,12 @@ func (p *Pool) hashRoute(messages []*string) {
 	for _, m := range messages {
 
 		key := strings.Fields(*m)[0]
-		node := p.Ring.GetNode(key)
+		node, err := p.Ring.GetNode(key)
+		// Current failure mode if
+		// the hash ring is empty.
+		if err != nil {
+			continue
+		}
 
 		select {
 		case p.Conns[node] <- m:
@@ -134,7 +139,8 @@ func (p *Pool) AddConn(dest Destination) {
 	p.Lock()
 
 	p.Conns[dest.Name] = make(chan *string, p.QueueCap)
-	
+
+	p.Unlock()
 	// This replicates the destination key setup in
 	// the carbon-cache implementation. It's a string composed of the
 	// (destination IP, instance) tuple + :replica count. E.g. "('127.0.0.1', 'a'):0" for
@@ -142,8 +148,6 @@ func (p *Pool) AddConn(dest Destination) {
 	// We statically append '0' since polymur isn't doing any replication handling.
 	destString := fmt.Sprintf("('%s', '%s'):0", dest.Ip, dest.Id)
 	p.Ring.AddNode(destString, dest.Name)
-
-	p.Unlock()
 }
 
 // RemoveConn removes a connection's outbound queue
@@ -153,6 +157,7 @@ func (p *Pool) RemoveConn(dest Destination) {
 	p.Lock()
 	// Check if it exists, first.
 	if _, connectionIsInPool := p.Conns[dest.Name]; !connectionIsInPool {
+		p.Unlock()
 		return
 	}
 
@@ -163,9 +168,9 @@ func (p *Pool) RemoveConn(dest Destination) {
 
 	// Remove.
 	delete(p.Conns, dest.Name)
-	p.Ring.RemoveNode(dest.Name)
-
 	p.Unlock()
+
+	p.Ring.RemoveNode(dest.Name)
 
 	// Don't need to redistribute in-flight for broadcast.
 	if p.Distribution == "broadcast" {

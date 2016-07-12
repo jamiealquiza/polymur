@@ -23,6 +23,7 @@ package consistenthash
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -86,7 +87,11 @@ func (h *HashRing) RemoveNode(name string) {
 
 // GetNode takes a key and returns the
 // destination nodeName from the ring.
-func (h *HashRing) GetNode(k string) string {
+func (h *HashRing) GetNode(k string) (string, error) {
+	if len(h.nodes) == 0 {
+		return "", errors.New("Hash ring is empty")
+	}
+
 	h.Lock()
 
 	// Hash the reference key.
@@ -99,7 +104,7 @@ func (h *HashRing) GetNode(k string) string {
 
 	h.Unlock()
 
-	return node
+	return node, nil
 }
 
 // getKey takes an input string (e.g. a metric or node name)
