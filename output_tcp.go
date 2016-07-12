@@ -78,11 +78,11 @@ func OutputTcp(p *pool.Pool, config *OutputTcpConfig, ready chan bool) {
 // destinationWriter requests a connection.
 // It dequeues from the connection outbound buffer
 // and writes to the respective destination.
-func destinationWriter(pool *pool.Pool, dest pool.Destination) {
+func destinationWriter(p *pool.Pool, dest pool.Destination) {
 
 	// Get initial connection.
-	pool.Register(dest)
-	conn, err := establishConn(pool, dest)
+	p.Register(dest)
+	conn, err := establishConn(p, dest)
 	if err != nil {
 		return
 	}
@@ -90,17 +90,17 @@ func destinationWriter(pool *pool.Pool, dest pool.Destination) {
 
 	// Dequeue from destination outbound queue
 	// and send.
-	for m := range pool.Conns[dest.Name] {
+	for m := range p.Conns[dest.Name] {
 		_, err := fmt.Fprintln(conn, *m)
 		// If we fail to send, reload the message into the
 		// queue and attempt to reconnect.
 		if err != nil {
-			pool.Conns[dest.Name] <- m
+			p.Conns[dest.Name] <- m
 			log.Printf("Destination %s error: %s\n", dest.Name, err)
 
 			// Wait on a connection. If the destination isn't
 			// registered, err and close this writer.
-			newConn, err := establishConn(pool, dest)
+			newConn, err := establishConn(p, dest)
 			if err != nil {
 				break
 			} else {
@@ -119,22 +119,22 @@ func destinationWriter(pool *pool.Pool, dest pool.Destination) {
 // will rejoin the pool upon success.
 
 // Should probably embed all this logic directly in the pool.
-func establishConn(pool *pool.Pool, dest pool.Destination) (net.Conn, error) {
+func establishConn(p *pool.Pool, dest pool.Destination) (net.Conn, error) {
 	retry := 0
 	retryMax := 3
 
 	for {
 		// If it's not registered, abort.
-		if _, destinationRegistered := pool.Registered[dest.Name]; !destinationRegistered {
+		if _, destinationRegistered := p.Registered[dest.Name]; !destinationRegistered {
 			return nil, errors.New("Destination not registered")
 		}
 
-		_, connectionIsInPool := pool.Conns[dest.Name]
+		_, connectionIsInPool := p.Conns[dest.Name]
 
 		// Are we retrying a previously established connection that failed?
 		if retry >= retryMax && connectionIsInPool {
 			log.Printf("Exceeded retry count (%d) for destination %s\n", retryMax, dest.Name)
-			pool.RemoveConn(dest)
+			p.RemoveConn(dest)
 		}
 
 		// Try a connection every 10s.
@@ -150,7 +150,7 @@ func establishConn(pool *pool.Pool, dest pool.Destination) (net.Conn, error) {
 			// If this connection succeeds and is not in the pool
 			if !connectionIsInPool {
 				log.Printf("Adding destination to connection pool: %s\n", dest.Name)
-				pool.AddConn(dest)
+				p.AddConn(dest)
 			} else {
 				// If this connection is still in the pool, we're
 				// likely here due to a temporary disconnect.
@@ -168,7 +168,7 @@ func establishConn(pool *pool.Pool, dest pool.Destination) (net.Conn, error) {
 // into the failedMessage queue and retries Distribution.
 // TODO: needs exponential backoff when no Destinations
 // are available; messages will enter a tight loop.
-func retryMessageHandler(pool *pool.Pool) {
+func retryMessageHandler(p *pool.Pool) {
 	flushTimeout := time.Tick(15 * time.Second)
 	messages := []*string{}
 	batchSize := 30
@@ -178,18 +178,18 @@ func retryMessageHandler(pool *pool.Pool) {
 		select {
 		case <-flushTimeout:
 			if len(messages) > 0 {
-				pool.DistributionMethod[pool.Distribution](pool, messages)
+				p.DistributionMethod[p.Distribution](p, messages)
 				messages = []*string{}
 			}
 			messages = []*string{}
-		case retry := <-pool.RetryQueue:
+		case retry := <-p.RetryQueue:
 			// If this puts us at the batchSize threshold, enqueue
 			// into the messageIncomingQueue.
 			if len(messages)+1 >= batchSize {
 				messages = append(messages, retry...)
 				// Lazy latency injection to tame loops. See TODO.
 				time.Sleep(500 * time.Millisecond)
-				pool.DistributionMethod[pool.Distribution](pool, messages)
+				p.DistributionMethod[p.Distribution](p, messages)
 				messages = []*string{}
 			} else {
 				// Otherwise, just append message to current batch.
