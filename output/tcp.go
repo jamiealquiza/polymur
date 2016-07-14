@@ -32,14 +32,14 @@ import (
 	"github.com/jamiealquiza/polymur/pool"
 )
 
-type TcpWriterconfig struct {
+type TcpWriterConfig struct {
 	Destinations  string
 	Distribution  string
 	IncomingQueue chan []*string
 	QueueCap      int
 }
 
-func TcpWriter(p *pool.Pool, config *TcpWriterconfig, ready chan bool) {
+func TcpWriter(p *pool.Pool, config *TcpWriterConfig, ready chan bool) {
 	p.Lock()
 	p.Distribution = config.Distribution
 	p.QueueCap = config.QueueCap
