@@ -74,7 +74,7 @@ func runControl() {
 func main() {
 	ready := make(chan bool, 1)
 
-	incomingQueue := make(chan []*string, 512)
+	incomingQueue := make(chan []*string, 32768)
 
 	pool := pool.NewPool()
 
