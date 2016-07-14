@@ -19,7 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-package polymur
+package output
 
 import (
 	"errors"
@@ -32,14 +32,14 @@ import (
 	"github.com/jamiealquiza/polymur/pool"
 )
 
-type OutputTcpConfig struct {
+type TcpWriterconfig struct {
 	Destinations  string
 	Distribution  string
 	IncomingQueue chan []*string
 	QueueCap      int
 }
 
-func OutputTcp(p *pool.Pool, config *OutputTcpConfig, ready chan bool) {
+func TcpWriter(p *pool.Pool, config *TcpWriterconfig, ready chan bool) {
 	p.Lock()
 	p.Distribution = config.Distribution
 	p.QueueCap = config.QueueCap
@@ -59,7 +59,7 @@ func OutputTcp(p *pool.Pool, config *OutputTcpConfig, ready chan bool) {
 			continue
 		}
 
-		go destinationWriter(p, dest)
+		go DestinationWriter(p, dest)
 	}
 
 	// In case we want any initialization to block.
@@ -74,10 +74,10 @@ func OutputTcp(p *pool.Pool, config *OutputTcpConfig, ready chan bool) {
 	}
 }
 
-// destinationWriter requests a connection.
+// DestinationWriter requests a connection.
 // It dequeues from the connection outbound buffer
 // and writes to the respective destination.
-func destinationWriter(p *pool.Pool, dest pool.Destination) {
+func DestinationWriter(p *pool.Pool, dest pool.Destination) {
 
 	// Get initial connection.
 	p.Register(dest)

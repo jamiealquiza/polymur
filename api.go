@@ -29,6 +29,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/jamiealquiza/polymur/output"
 	"github.com/jamiealquiza/polymur/pool"
 )
 
@@ -75,7 +76,7 @@ func putdest(r Request) string {
 
 	// TODO replace this func with an
 	// add destination method on the pool.
-	go destinationWriter(r.pool, dest)
+	go output.DestinationWriter(r.pool, dest)
 
 	return fmt.Sprintf("Registered destination: %s\n", r.param)
 }

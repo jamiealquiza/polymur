@@ -30,6 +30,7 @@ import (
 
 	"github.com/jamiealquiza/polymur"
 	"github.com/jamiealquiza/polymur/listener"
+	"github.com/jamiealquiza/polymur/output"
 	"github.com/jamiealquiza/polymur/pool"
 	"github.com/jamiealquiza/polymur/statstracker"
 	"github.com/jamiealquiza/runstats"
@@ -82,9 +83,9 @@ func main() {
 		go polymur.OutputConsole(incomingQueue)
 		ready <- true
 	} else {
-		go polymur.OutputTcp(
+		go output.TcpWriter(
 			pool,
-			&polymur.OutputTcpConfig{
+			&output.TcpWriterConfig{
 				Destinations:  options.destinations,
 				Distribution:  options.distribution,
 				IncomingQueue: incomingQueue,

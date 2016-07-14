@@ -137,10 +137,9 @@ func (p *Pool) Unregister(dest Destination) {
 // to the global connection pool lists.
 func (p *Pool) AddConn(dest Destination) {
 	p.Lock()
-
 	p.Conns[dest.Name] = make(chan *string, p.QueueCap)
-
 	p.Unlock()
+
 	// This replicates the destination key setup in
 	// the carbon-cache implementation. It's a string composed of the
 	// (destination IP, instance) tuple + :replica count. E.g. "('127.0.0.1', 'a'):0" for
