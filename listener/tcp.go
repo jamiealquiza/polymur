@@ -83,8 +83,8 @@ func connectionHandler(c net.Conn, q chan []*string, s *statstracker.Stats) {
 		s.UpdateCount(1)
 
 		// Drop message and respond if the incoming queue is at capacity.
-		if len(q) >= 512 {
-			log.Printf("Incoming queue capacity %d reached\n", 512)
+		if len(q) >= 32768 {
+			log.Printf("Incoming queue capacity %d reached\n", 32768)
 			// Impose flow control. This needs to be significantly smarter.
 			time.Sleep(1 * time.Second)
 		}
