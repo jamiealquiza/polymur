@@ -84,6 +84,9 @@ func StatsTracker(pool *pool.Pool, s *Stats) {
 			s.UpdateRate(0)
 		}
 
+		if pool == nil {
+			continue
+		}
 		// Outbound queues.
 		pool.Lock()
 		for dest, outboundQueue := range pool.Conns {

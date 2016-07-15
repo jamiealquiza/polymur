@@ -116,8 +116,6 @@ func DestinationWriter(p *pool.Pool, dest pool.Destination) {
 // being retried but fails for 3 consecutive attempts, it will be removed
 // from the global pool. Background attempts will continue and the connection
 // will rejoin the pool upon success.
-
-// Should probably embed all this logic directly in the pool.
 func establishConn(p *pool.Pool, dest pool.Destination) (net.Conn, error) {
 	retry := 0
 	retryMax := 3

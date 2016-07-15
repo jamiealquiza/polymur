@@ -104,8 +104,10 @@ func main() {
 	go listener.ListenTcp(&listener.ListenerConfig{
 		Addr:          options.addr,
 		IncomingQueue: incomingQueue,
-	},
-		sentCntr)
+		FlushTimeout:  5,
+		FlushSize:     100,
+		Stats:         sentCntr,
+	})
 
 	// API listener.
 	go polymur.Api(pool, options.apiAddr)

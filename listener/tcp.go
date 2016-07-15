@@ -33,10 +33,13 @@ import (
 type ListenerConfig struct {
 	Addr          string
 	IncomingQueue chan []*string
+	FlushTimeout  int
+	FlushSize     int
+	Stats         *statstracker.Stats
 }
 
 // Listens for messages.
-func ListenTcp(config *ListenerConfig, s *statstracker.Stats) {
+func ListenTcp(config *ListenerConfig) {
 	log.Printf("Metrics listener started: %s\n", config.Addr)
 	server, err := net.Listen("tcp", config.Addr)
 	if err != nil {
@@ -52,12 +55,12 @@ func ListenTcp(config *ListenerConfig, s *statstracker.Stats) {
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		go connectionHandler(conn, config.IncomingQueue, s)
+		go connectionHandler(config, conn)
 	}
 }
 
-func connectionHandler(c net.Conn, q chan []*string, s *statstracker.Stats) {
-	flushTimeout := time.NewTicker(5 * time.Second)
+func connectionHandler(config *ListenerConfig, c net.Conn) {
+	flushTimeout := time.NewTicker(time.Duration(config.FlushTimeout) * time.Second)
 	defer flushTimeout.Stop()
 
 	messages := []*string{}
@@ -71,7 +74,7 @@ func connectionHandler(c net.Conn, q chan []*string, s *statstracker.Stats) {
 		select {
 		case <-flushTimeout.C:
 			if len(messages) > 0 {
-				q <- messages
+				config.IncomingQueue <- messages
 				messages = []*string{}
 			}
 			messages = []*string{}
@@ -80,10 +83,10 @@ func connectionHandler(c net.Conn, q chan []*string, s *statstracker.Stats) {
 		}
 
 		m := inbound.Text()
-		s.UpdateCount(1)
+		config.Stats.UpdateCount(1)
 
 		// Drop message and respond if the incoming queue is at capacity.
-		if len(q) >= 32768 {
+		if len(config.IncomingQueue) >= 32768 {
 			log.Printf("Incoming queue capacity %d reached\n", 32768)
 			// Impose flow control. This needs to be significantly smarter.
 			time.Sleep(1 * time.Second)
@@ -91,9 +94,9 @@ func connectionHandler(c net.Conn, q chan []*string, s *statstracker.Stats) {
 
 		// If this puts us at the batchSize threshold, enqueue
 		// into the q.
-		if len(messages)+1 >= 30 {
+		if len(messages)+1 >= config.FlushSize {
 			messages = append(messages, &m)
-			q <- messages
+			config.IncomingQueue <- messages
 			messages = []*string{}
 		} else {
 			// Otherwise, just append message to current batch.
@@ -102,6 +105,6 @@ func connectionHandler(c net.Conn, q chan []*string, s *statstracker.Stats) {
 
 	}
 
-	q <- messages
+	config.IncomingQueue <- messages
 
 }
