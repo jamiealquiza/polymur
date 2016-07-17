@@ -101,7 +101,7 @@ func main() {
 	go statstracker.StatsTracker(pool, sentCntr)
 
 	// TCP Listener.
-	go listener.ListenTcp(&listener.ListenerConfig{
+	go listener.TcpListener(&listener.TcpListenerConfig{
 		Addr:          options.addr,
 		IncomingQueue: incomingQueue,
 		FlushTimeout:  5,
