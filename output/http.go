@@ -37,6 +37,7 @@ type HttpWriterConfig struct {
 	ApiKey        string
 	Gateway       string
 	IncomingQueue chan []*string
+	Workers int
 	client        *http.Client
 }
 
@@ -71,23 +72,17 @@ func HttpWriter(config *HttpWriterConfig, ready chan bool) {
 	}
 
 	// Check if not 200 and exit.
-	log.Printf("%s", response.String)
+	if response.Code != 200 {
+		log.Fatal(response.String)
+	}
 
 	ready <- true
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < config.Workers; i++ {
 		go writeStream(config, i)
 	}
 }
 
-/*
-func sendData(data []string) string {
-	m := []string{"one", "two"}
-	postData := packDataPoints(m)
-
-	response := apiPost(config, "/ingest", postData)
-}
-*/
 
 func writeStream(config *HttpWriterConfig, workerId int) {
 	log.Printf("HTTP writer #%d started\n", workerId)
@@ -98,9 +93,10 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 			len(m))
 
 		data := packDataPoints(m)
+		
 		response, err := apiPost(config, "/ingest", data)
-
 		if err != nil {
+			// TODO need failure / retry logic.
 			log.Printf("[worker #%d] %s", workerId, err)
 		}
 
