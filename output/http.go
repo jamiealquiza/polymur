@@ -97,6 +97,7 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 		if err != nil {
 			// TODO need failure / retry logic.
 			log.Printf("[worker #%d] %s", workerId, err)
+			continue
 		}
 
 		log.Printf("[worker #%d] %s", workerId, response.String)
