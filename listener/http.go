@@ -30,16 +30,16 @@ import (
 )
 
 type HttpListenerConfig struct {
-	Addr string
+	Addr          string
 	IncomingQueue chan []*string
-    Cert string
-    Key string
+	Cert          string
+	Key           string
 }
 
 func HttpListener(config *HttpListenerConfig) {
 	http.HandleFunc("/ingest", ingest)
 	http.HandleFunc("/ping", ping)
-	
+
 	err := http.ListenAndServeTLS(":443", config.Cert, config.Key, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)

@@ -37,7 +37,7 @@ type HttpWriterConfig struct {
 	ApiKey        string
 	Gateway       string
 	IncomingQueue chan []*string
-	Workers int
+	Workers       int
 	client        *http.Client
 }
 
@@ -83,7 +83,6 @@ func HttpWriter(config *HttpWriterConfig, ready chan bool) {
 	}
 }
 
-
 func writeStream(config *HttpWriterConfig, workerId int) {
 	log.Printf("HTTP writer #%d started\n", workerId)
 
@@ -93,7 +92,7 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 			len(m))
 
 		data := packDataPoints(m)
-		
+
 		response, err := apiPost(config, "/ingest", data)
 		if err != nil {
 			// TODO need failure / retry logic.

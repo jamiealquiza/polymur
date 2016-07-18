@@ -46,8 +46,8 @@ var (
 		destinations string
 		metricsFlush int
 		distribution string
-		cert string
-		key string
+		cert         string
+		key          string
 	}
 
 	sig_chan = make(chan os.Signal)
@@ -63,7 +63,7 @@ func init() {
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
 	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, hash-route")
 	flag.StringVar(&options.cert, "cert", "", "TLS Certificate")
-    flag.StringVar(&options.key, "key", "", "TLS Key")
+	flag.StringVar(&options.key, "key", "", "TLS Key")
 	flag.Parse()
 }
 
@@ -108,8 +108,8 @@ func main() {
 	go listener.HttpListener(&listener.HttpListenerConfig{
 		Addr:          options.addr,
 		IncomingQueue: incomingQueue,
-		Cert: options.cert,
-		Key: options.key,
+		Cert:          options.cert,
+		Key:           options.key,
 	})
 
 	// API listener.
