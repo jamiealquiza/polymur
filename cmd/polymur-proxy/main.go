@@ -43,7 +43,7 @@ var (
 		addr         string
 		statAddr     string
 		queuecap     int
-		workers	int
+		workers      int
 		console      bool
 		metricsFlush int
 	}
@@ -55,7 +55,7 @@ func init() {
 	flag.StringVar(&options.cert, "cert", "", "TLS Certificate")
 	flag.StringVar(&options.apiKey, "api-key", "", "polymur gateway API key")
 	flag.StringVar(&options.gateway, "gateway", "", "polymur gateway address")
-	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0:2003", "Polymur listen address")
+	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0:2003", "Polymur-proxy listen address")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
 	flag.IntVar(&options.queuecap, "queue-cap", 32768, "In-flight message queue capacity")
 	flag.IntVar(&options.workers, "workers", 3, "HTTP output workers")
@@ -87,7 +87,7 @@ func main() {
 				Cert:          options.cert,
 				ApiKey:        options.apiKey,
 				Gateway:       options.gateway,
-				Workers:	options.workers,
+				Workers:       options.workers,
 				IncomingQueue: incomingQueue,
 			},
 			ready)
