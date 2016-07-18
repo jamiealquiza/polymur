@@ -37,7 +37,7 @@ type HttpListenerConfig struct {
 }
 
 func HttpListener(config *HttpListenerConfig) {
-	http.HandleFunc("/ingest", ingest)
+	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config.IncomingQueue) })
 	http.HandleFunc("/ping", ping)
 
 	err := http.ListenAndServeTLS(":443", config.Cert, config.Key, nil)
@@ -46,7 +46,10 @@ func HttpListener(config *HttpListenerConfig) {
 	}
 }
 
-func ingest(w http.ResponseWriter, req *http.Request) {
+func ingest(w http.ResponseWriter, req *http.Request, q chan []*string) {
+	io.WriteString(w, "Batch Received\n")
+	log.Printf("Recieved batch from from %s\n", req.Header["X-Polymur-Key"][0])
+
 	read, err := gzip.NewReader(req.Body)
 	if err != nil {
 		log.Println(err)
@@ -54,12 +57,28 @@ func ingest(w http.ResponseWriter, req *http.Request) {
 
 	var b bytes.Buffer
 	b.ReadFrom(read)
-
-	log.Printf("Recieved %s from %s\n", b.String(), req.Header["X-Polymur-Key"][0])
-
-	io.WriteString(w, "received\n")
-
 	req.Body.Close()
+
+	batch := []*string{}
+	// Probably want to just pass a header that
+	// specifies how many data points are in the batch
+	// so that we can avoid using append().
+	for {
+		// This should have a timeout so
+		// malformed messages without a delim
+		// don't hang forever.
+		l, err := b.ReadBytes(10)
+
+		if len(l) > 0 {
+			m := string(l[:len(l)-1])
+			batch = append(batch, &m)
+		}
+		if err != nil {
+			break
+		}
+	}
+
+	q <- batch
 }
 
 func ping(w http.ResponseWriter, req *http.Request) {
