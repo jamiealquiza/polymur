@@ -126,18 +126,16 @@ func apiPost(config *HttpWriterConfig, path string, postData io.Reader) (*GwResp
 	return &GwResp{String: string(data), Code: resp.StatusCode}, nil
 }
 
-// This is inefficient.
 func packDataPoints(d []*string) io.Reader {
-	var b bytes.Buffer
-
-	for _, s := range d {
-		b.WriteString(*s + "\n")
-	}
-
 	var compressed bytes.Buffer
 	w := gzip.NewWriter(&compressed)
-	w.Write(b.Bytes())
+
+	for _, s := range d {
+		w.Write([]byte(*s))
+		w.Write([]byte{10})
+	}
+
 	w.Close()
 
-	return bytes.NewReader(compressed.Bytes())
+	return &compressed
 }
