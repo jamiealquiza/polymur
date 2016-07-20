@@ -1,7 +1,8 @@
 # polymur
 
-Undergoing active dev. May have [issues](https://github.com/jamiealquiza/polymur/issues).
-Definitely build this with at least Go 1.5.x.
+Undergoing active dev (although currently being used in production with thousands of hosts). Please visit [issues](https://github.com/jamiealquiza/polymur/issues).
+
+Also see [polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) and [polymur-gateway](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-gateway) services for offsite metrics forwarding over HTTPS.
 
 ### Overview
 
