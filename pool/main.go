@@ -39,6 +39,8 @@ type Destination struct {
 	Name string
 }
 
+// Pool is a unit that holds all the destinations, their connection
+// state, queues and misc.
 type Pool struct {
 	sync.Mutex
 	Ring               *consistenthash.HashRing
@@ -50,6 +52,7 @@ type Pool struct {
 	RetryQueue         chan []*string
 }
 
+// NewPool initializes a *Pool.
 func NewPool() *Pool {
 	pool := &Pool{
 		Ring:       &consistenthash.HashRing{},
@@ -67,6 +70,8 @@ func NewPool() *Pool {
 
 // Distribution functions.
 
+// broadcast takes a batch of messages and
+// sends a copy of each to all destinations outbound queue.
 func (p *Pool) broadcast(messages []*string) {
 	// For each message in the batch,
 	for _, m := range messages {
@@ -83,6 +88,9 @@ func (p *Pool) broadcast(messages []*string) {
 	}
 }
 
+// hashRoute takes a batch of messages and
+// distributes them to the destination outbound
+// queue according to the CH algo.
 func (p *Pool) hashRoute(messages []*string) {
 	for _, m := range messages {
 
@@ -116,6 +124,9 @@ func (p *Pool) hashRoute(messages []*string) {
 
 // Pool state update methods.
 
+// Register adds a timestamped connection
+// to the pool's registered connection list.
+// A registered destination is not necessarily active.
 func (p *Pool) Register(dest Destination) {
 	p.Lock()
 	defer p.Unlock()
@@ -124,6 +135,8 @@ func (p *Pool) Register(dest Destination) {
 	p.Registered[dest.Name] = time.Now()
 }
 
+// Unregister removes a connection from the
+// pool and additionally drops the connection queue.
 func (p *Pool) Unregister(dest Destination) {
 	p.Lock()
 	delete(p.Registered, dest.Name)
@@ -134,7 +147,7 @@ func (p *Pool) Unregister(dest Destination) {
 }
 
 // AddConn adds a connection's outbound queue
-// to the global connection pool lists.
+// to the pool's active list.
 func (p *Pool) AddConn(dest Destination) {
 	p.Lock()
 	p.Conns[dest.Name] = make(chan *string, p.QueueCap)
@@ -150,7 +163,7 @@ func (p *Pool) AddConn(dest Destination) {
 }
 
 // RemoveConn removes a connection's outbound queue
-// from the global connection pool lists.
+// from the pool's active lists.
 // Additionally, it will redistribute any in-flight messages.
 func (p *Pool) RemoveConn(dest Destination) {
 	p.Lock()
@@ -186,6 +199,8 @@ func (p *Pool) RemoveConn(dest Destination) {
 	}
 }
 
+// ParseDestination takes a destination string
+// and returns a Destination{}.
 func ParseDestination(s string) (Destination, error) {
 	d := Destination{Name: s}
 	parts := strings.Split(s, ":")

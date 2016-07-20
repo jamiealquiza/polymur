@@ -33,6 +33,7 @@ import (
 	"github.com/jamiealquiza/polymur/pool"
 )
 
+// Available API commands.
 var (
 	commands = map[string]func(r Request) string{
 		"getdest": getdest,
@@ -41,12 +42,14 @@ var (
 	}
 )
 
+// Request holds API request parameters.
 type Request struct {
 	pool    *pool.Pool
 	command string
 	param   string
 }
 
+// getdest returns registered destinations from the pool.
 func getdest(r Request) string {
 	dests := make(map[string]interface{})
 	// Get all registered destinations.
@@ -64,6 +67,7 @@ func getdest(r Request) string {
 	return fmt.Sprintf("%s\n", response)
 }
 
+// putdest registers a destination with the pool.
 func putdest(r Request) string {
 	if r.param == "" {
 		return fmt.Sprintf("Must provide destination\n")
@@ -81,6 +85,7 @@ func putdest(r Request) string {
 	return fmt.Sprintf("Registered destination: %s\n", r.param)
 }
 
+// deldest unregisters a destination with the pool.
 func deldest(r Request) string {
 	if r.param == "" {
 		return fmt.Sprintf("Must provide destination\n")
@@ -96,6 +101,8 @@ func deldest(r Request) string {
 	return fmt.Sprintf("Unregistered destination: %s\n", r.param)
 }
 
+// Api is a simple TCP listener that
+// listens for requests.
 func Api(p *pool.Pool, address string) {
 	log.Printf("API started: %s\n", address)
 
@@ -115,6 +122,7 @@ func Api(p *pool.Pool, address string) {
 	}
 }
 
+// apiHandler reads and handles API requests.
 func apiHandler(p *pool.Pool, conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
