@@ -41,19 +41,25 @@ type HttpWriterConfig struct {
 	client        *http.Client
 }
 
+// GwResp captures the response string
+// and numeric code from a polymur-gateway.
 type GwResp struct {
 	String string
 	Code   int
 }
 
+// HttpWriter writes compressesed message batches over HTTPS
+// to a polymur-gateway instance. Initial connection is OK'd
+// by hitting the /ping path with a valid client API key registered
+// with the polymur-gateway.
 func HttpWriter(config *HttpWriterConfig, ready chan bool) {
-	// Init with client cert.
 	cert, err := ioutil.ReadFile(config.Cert)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
 
+	// Use client cert.
 	roots := x509.NewCertPool()
 	ok := roots.AppendCertsFromPEM(cert)
 	if !ok {
@@ -73,16 +79,21 @@ func HttpWriter(config *HttpWriterConfig, ready chan bool) {
 
 	// Check if not 200 and exit.
 	if response.Code != 200 {
-		log.Fatal(response.String)
+		log.Fatalf("Gateway response: %s\n", response.String)
+	} else {
+		log.Printf("Connection to gateway %s successful\n", config.Gateway)
 	}
 
 	ready <- true
 
+	// Start up writers.
 	for i := 0; i < config.Workers; i++ {
 		go writeStream(config, i)
 	}
 }
 
+// writeStream reads data point batches from the IncomingQueue,
+// compresses and writes to the downstream polymur-gateway.
 func writeStream(config *HttpWriterConfig, workerId int) {
 	log.Printf("HTTP writer #%d started\n", workerId)
 
@@ -96,14 +107,16 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 		response, err := apiPost(config, "/ingest", data)
 		if err != nil {
 			// TODO need failure / retry logic.
-			log.Printf("[worker #%d] %s", workerId, err)
+			log.Printf("[worker #%d] gateway response: %s", workerId, err)
 			continue
 		}
 
-		log.Printf("[worker #%d] %s", workerId, response.String)
+		log.Printf("[worker #%d] gateway response: %s", workerId, response.String)
 	}
 }
 
+// apiPost is a convenience wrapper for submitting requests to
+// a polymur-gateway and returning GwResp's.
 func apiPost(config *HttpWriterConfig, path string, postData io.Reader) (*GwResp, error) {
 	req, err := http.NewRequest("POST", config.Gateway+path, postData)
 	if err != nil {
@@ -126,6 +139,8 @@ func apiPost(config *HttpWriterConfig, path string, postData io.Reader) (*GwResp
 	return &GwResp{String: string(data), Code: resp.StatusCode}, nil
 }
 
+// packDataPoints takes a []*string batch of data points,
+// compresses them and returns the reader.
 func packDataPoints(d []*string) io.Reader {
 	var compressed bytes.Buffer
 	w := gzip.NewWriter(&compressed)

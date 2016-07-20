@@ -24,6 +24,7 @@ package listener
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -36,6 +37,9 @@ type HttpListenerConfig struct {
 	Key           string
 }
 
+// HttpListener accepts connections from a polymur-proxy
+// client. Upon a successful /ping client API key validation,
+// batches of compressed messages are passed to /ingest handler.
 func HttpListener(config *HttpListenerConfig) {
 	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config.IncomingQueue) })
 	http.HandleFunc("/ping", ping)
@@ -46,6 +50,10 @@ func HttpListener(config *HttpListenerConfig) {
 	}
 }
 
+// ingest is a handler that accepts a batch of compressed data points.
+// Data points arive as a concatenated string with newline delimition.
+// Each batch is broken up and populated into a []*string and pushed
+// to the IncomingQueue for downstream destination writing.
 func ingest(w http.ResponseWriter, req *http.Request, q chan []*string) {
 	io.WriteString(w, "Batch Received\n")
 	log.Printf("Recieved batch from from %s\n", req.Header["X-Polymur-Key"][0])
@@ -81,15 +89,23 @@ func ingest(w http.ResponseWriter, req *http.Request, q chan []*string) {
 	q <- batch
 }
 
+// ping validates a connecting polymur-proxy's API key.
 func ping(w http.ResponseWriter, req *http.Request) {
-
-	if validKey(req.Header["X-Polymur-Key"][0]) {
+	k := req.Header["X-Polymur-Key"][0]
+	if validKey(k) {
+		log.Printf("Key %s is valid\n", k)
 		io.WriteString(w, "valid\n")
 	} else {
+		resp := fmt.Sprintf("Key %s is invalid", k)
+		log.Println(resp)
 		w.WriteHeader(http.StatusUnauthorized)
+		io.WriteString(w, resp)
 	}
 }
 
+// validKey looks up a keys validity. This is
+// obviously a dummy function until a backing store
+// is implemented.
 func validKey(k string) bool {
 	log.Printf("Validating key: %s\n", k)
 	if k == "123" {

@@ -31,13 +31,18 @@ import (
 )
 
 // HashRing provides a consistent hashing
-// mechanism that mirrors the placement algorithm
+// mechanism that replicates the placement algorithm
 // used in the Graphite project carbon-cache daemon.
 type HashRing struct {
 	sync.Mutex
 	nodes nodeList
 }
 
+// node is an item to reference a nodeName
+// by a nodeId. A nodeId is a numeric value
+// specifying the node's calculated hash-ring
+// position, nodeName matches the node's string
+// name in a polymur connection pool.
 type node struct {
 	nodeId   int
 	nodeName string
@@ -46,6 +51,8 @@ type node struct {
 type nodeList []*node
 
 // Implement functions for sort interface.
+// This is to allow the bisection search / insort
+// ring operations.
 func (n nodeList) Len() int {
 	return len(n)
 }
@@ -60,6 +67,13 @@ func (n nodeList) Swap(i, j int) {
 
 // Hash ring operations.
 
+// AddNode takes a node keyname and name.
+// The name will populate the node.nodeName field,
+// but we pass an explicit keyname value so that
+// the hashing function is using the same naming convention
+// as the consistent hashing implementation in Graphite.
+// The Graphite project hashes nodes using the
+// following format: "('127.0.0.1', 'a'):0".
 func (h *HashRing) AddNode(keyname, name string) {
 	h.Lock()
 
@@ -70,6 +84,7 @@ func (h *HashRing) AddNode(keyname, name string) {
 	h.Unlock()
 }
 
+// RemoveNode drops a node from the hash ring.
 func (h *HashRing) RemoveNode(name string) {
 	h.Lock()
 
