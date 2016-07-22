@@ -28,6 +28,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/jamiealquiza/polymur/statstracker"
 )
 
 type HttpListenerConfig struct {
@@ -35,13 +37,14 @@ type HttpListenerConfig struct {
 	IncomingQueue chan []*string
 	Cert          string
 	Key           string
+	Stats         *statstracker.Stats
 }
 
 // HttpListener accepts connections from a polymur-proxy
 // client. Upon a successful /ping client API key validation,
 // batches of compressed messages are passed to /ingest handler.
 func HttpListener(config *HttpListenerConfig) {
-	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config.IncomingQueue) })
+	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config) })
 	http.HandleFunc("/ping", ping)
 
 	err := http.ListenAndServeTLS(":443", config.Cert, config.Key, nil)
@@ -54,7 +57,7 @@ func HttpListener(config *HttpListenerConfig) {
 // Data points arive as a concatenated string with newline delimition.
 // Each batch is broken up and populated into a []*string and pushed
 // to the IncomingQueue for downstream destination writing.
-func ingest(w http.ResponseWriter, req *http.Request, q chan []*string) {
+func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig) {
 	io.WriteString(w, "Batch Received\n")
 	log.Printf("Recieved batch from from %s\n", req.Header["X-Polymur-Key"][0])
 
@@ -80,13 +83,14 @@ func ingest(w http.ResponseWriter, req *http.Request, q chan []*string) {
 		if len(l) > 0 {
 			m := string(l[:len(l)-1])
 			batch = append(batch, &m)
+			config.Stats.UpdateCount(1)
 		}
 		if err != nil {
 			break
 		}
 	}
 
-	q <- batch
+	config.IncomingQueue <- batch
 }
 
 // ping validates a connecting polymur-proxy's API key.

@@ -110,6 +110,7 @@ func main() {
 		IncomingQueue: incomingQueue,
 		Cert:          options.cert,
 		Key:           options.key,
+		Stats:         sentCntr,
 	})
 
 	// API listener.
