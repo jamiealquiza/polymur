@@ -60,51 +60,65 @@ func TcpListener(config *TcpListenerConfig) {
 }
 
 func connectionHandler(config *TcpListenerConfig, c net.Conn) {
-	flushTimeout := time.NewTicker(time.Duration(config.FlushTimeout) * time.Second)
-	defer flushTimeout.Stop()
-
-	messages := []*string{}
+	messages := make(chan string, 128)
+	go messageBatcher(messages, config)
 
 	inbound := bufio.NewScanner(c)
 	defer c.Close()
 
 	for inbound.Scan() {
+		m := inbound.Text()
+		messages <- m
+		config.Stats.UpdateCount(1)
+	}
 
+	close(messages)
+}
+
+func messageBatcher(messages chan string, config *TcpListenerConfig) {
+	flushTimeout := time.NewTicker(time.Duration(config.FlushTimeout) * time.Second)
+	defer flushTimeout.Stop()
+
+	batch := []*string{}
+
+run:
+	for {
 		// We hit the flush timeout, load the current batch if present.
 		select {
 		case <-flushTimeout.C:
-			if len(messages) > 0 {
-				config.IncomingQueue <- messages
-				messages = []*string{}
+			if len(batch) > 0 {
+				config.IncomingQueue <- batch
+				batch = []*string{}
 			}
-			messages = []*string{}
+			batch = []*string{}
+		case m, ok := <-messages:
+			if !ok {
+				break run
+			}
+
+			// Drop message and respond if the incoming queue is at capacity.
+			if len(config.IncomingQueue) >= 32768 {
+				log.Printf("Incoming queue capacity %d reached\n", 32768)
+				// Needs some flow control logic.
+			}
+
+			// If this puts us at the batchSize threshold, enqueue
+			// into the q.
+			if len(messages)+1 >= config.FlushSize {
+				batch = append(batch, &m)
+				config.IncomingQueue <- batch
+				batch = []*string{}
+			} else {
+				// Otherwise, just append message to current batch.
+				batch = append(batch, &m)
+			}
 		default:
+			time.Sleep(time.Second)
 			break
 		}
-
-		m := inbound.Text()
-		config.Stats.UpdateCount(1)
-
-		// Drop message and respond if the incoming queue is at capacity.
-		if len(config.IncomingQueue) >= 32768 {
-			log.Printf("Incoming queue capacity %d reached\n", 32768)
-			// Impose flow control. This needs to be significantly smarter.
-			time.Sleep(1 * time.Second)
-		}
-
-		// If this puts us at the batchSize threshold, enqueue
-		// into the q.
-		if len(messages)+1 >= config.FlushSize {
-			messages = append(messages, &m)
-			config.IncomingQueue <- messages
-			messages = []*string{}
-		} else {
-			// Otherwise, just append message to current batch.
-			messages = append(messages, &m)
-		}
-
 	}
 
-	config.IncomingQueue <- messages
-
+	// Load any partial batch before
+	// we return.
+	config.IncomingQueue <- batch
 }
