@@ -146,6 +146,9 @@ func packDataPoints(d []*string) io.Reader {
 	w := gzip.NewWriter(&compressed)
 
 	for _, s := range d {
+		if s == nil {
+			break
+		}
 		w.Write([]byte(*s))
 		w.Write([]byte{10})
 	}
