@@ -75,6 +75,9 @@ func NewPool() *Pool {
 func (p *Pool) broadcast(messages []*string) {
 	// For each message in the batch,
 	for _, m := range messages {
+		if m == nil {
+			break
+		}
 		// enqueue into each available destination queue.
 		for _, q := range p.Conns {
 			select {
@@ -93,6 +96,9 @@ func (p *Pool) broadcast(messages []*string) {
 // queue according to the CH algo.
 func (p *Pool) hashRoute(messages []*string) {
 	for _, m := range messages {
+		if m == nil {
+			break
+		}
 
 		key := strings.Fields(*m)[0]
 		node, err := p.Ring.GetNode(key)
@@ -183,6 +189,8 @@ func (p *Pool) RemoveConn(dest Destination) {
 	p.Unlock()
 
 	p.Ring.RemoveNode(dest.Name)
+
+	close(q)
 
 	// Don't need to redistribute in-flight for broadcast.
 	if p.Distribution == "broadcast" {

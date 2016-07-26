@@ -89,25 +89,60 @@ func DestinationWriter(p *pool.Pool, dest pool.Destination) {
 
 	// Dequeue from destination outbound queue
 	// and send.
-	for m := range p.Conns[dest.Name] {
-		_, err := fmt.Fprintln(conn, *m)
-		// If we fail to send, reload the message into the
-		// queue and attempt to reconnect.
-		if err != nil {
-			p.Conns[dest.Name] <- m
-			log.Printf("Destination %s error: %s\n", dest.Name, err)
-
-			// Wait on a connection. If the destination isn't
-			// registered, err and close this writer.
-			newConn, err := establishConn(p, dest)
-			if err != nil {
-				break
-			} else {
-				conn = newConn
-			}
+	n := 1
+	for {
+		// Exponential backoff var
+		// if the channel is empty.
+		if n < 1000 {
+			n = n * 2
 		}
-	}
 
+		// Need to make sure the connection
+		// exists. It's possible that it becomes
+		// unregistered (therefore doesn't exist) between
+		// checking if it exists and attempting to read from it.
+		p.Lock()
+		_, ok := p.Conns[dest.Name]
+		if !ok {
+			p.Unlock()
+			return
+		}
+
+		// Have to do a non-blocking read attempt, otherwise
+		// unlocking the mutex will be blocked.
+		select {
+		case m, ok := <-p.Conns[dest.Name]:
+			p.Unlock()
+
+			if !ok {
+				return
+			}
+
+			_, err := fmt.Fprintln(conn, *m)
+			// If we fail to send, reload the message into the
+			// queue and attempt to reconnect.
+			if err != nil {
+				p.Conns[dest.Name] <- m
+				log.Printf("Destination %s error: %s\n", dest.Name, err)
+
+				// Wait on a connection. If the destination isn't
+				// registered, err and close this writer.
+				newConn, err := establishConn(p, dest)
+				if err != nil {
+					break
+				} else {
+					conn = newConn
+				}
+			}
+			// Reset backoff var.
+			n = 1
+		default:
+			p.Unlock()
+			time.Sleep(time.Duration(n) * time.Millisecond)
+			continue
+		}
+
+	}
 }
 
 // establishConn manages TCP connections. Upon successful

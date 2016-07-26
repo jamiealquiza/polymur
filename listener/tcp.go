@@ -79,7 +79,8 @@ func messageBatcher(messages chan string, config *TcpListenerConfig) {
 	flushTimeout := time.NewTicker(time.Duration(config.FlushTimeout) * time.Second)
 	defer flushTimeout.Stop()
 
-	batch := []*string{}
+	batch := make([]*string, config.FlushSize)
+	pos := 0
 
 run:
 	for {
@@ -88,9 +89,9 @@ run:
 		case <-flushTimeout.C:
 			if len(batch) > 0 {
 				config.IncomingQueue <- batch
-				batch = []*string{}
+				batch = make([]*string, config.FlushSize)
+				pos = 0
 			}
-			batch = []*string{}
 		case m, ok := <-messages:
 			if !ok {
 				break run
@@ -102,19 +103,18 @@ run:
 				// Needs some flow control logic.
 			}
 
-			// If this puts us at the batchSize threshold, enqueue
+			// If this puts us at the FlushSize threshold, enqueue
 			// into the q.
-			if len(messages)+1 >= config.FlushSize {
-				batch = append(batch, &m)
+			if pos+1 >= config.FlushSize {
+				batch[config.FlushSize-1] = &m
 				config.IncomingQueue <- batch
-				batch = []*string{}
+				batch = make([]*string, config.FlushSize)
+				pos = 0
 			} else {
 				// Otherwise, just append message to current batch.
-				batch = append(batch, &m)
+				batch[pos] = &m
+				pos++
 			}
-		default:
-			time.Sleep(time.Second)
-			break
 		}
 	}
 
