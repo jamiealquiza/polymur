@@ -79,7 +79,7 @@ func HttpWriter(config *HttpWriterConfig, ready chan bool) {
 
 	// Check if not 200 and exit.
 	if response.Code != 200 {
-		log.Fatalf("Gateway response: %s\n", response.String)
+		log.Fatalf("[gateway]: %s\n", response.String)
 	} else {
 		log.Printf("Connection to gateway %s successful\n", config.Gateway)
 	}
@@ -107,11 +107,11 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 		response, err := apiPost(config, "/ingest", data)
 		if err != nil {
 			// TODO need failure / retry logic.
-			log.Printf("[worker #%d] gateway response: %s", workerId, err)
+			log.Printf("[worker #%d] [gateway]: %s", workerId, err)
 			continue
 		}
 
-		log.Printf("[worker #%d] gateway response: %s", workerId, response.String)
+		log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
 	}
 }
 

@@ -60,8 +60,26 @@ func HttpListener(config *HttpListenerConfig) {
 // Each batch is broken up and populated into a []*string and pushed
 // to the IncomingQueue for downstream destination writing.
 func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig) {
+
+	// Validate key on every batch.
+	// May or may not be a good idea.
+	requestKey := req.Header["X-Polymur-Key"][0]
+	keyName, valid := validateKey(requestKey, config.Keys)
+	if !valid {
+		log.Printf("[client %s] %s is not a valid key\n",
+			req.RemoteAddr, requestKey)
+
+		resp := fmt.Sprintf("invalid key")
+		req.Close = true
+		w.WriteHeader(http.StatusUnauthorized)
+		io.WriteString(w, resp)
+
+		return
+	}
+
 	io.WriteString(w, "Batch Received\n")
-	log.Printf("Recieved batch from from %s\n", req.Header["X-Polymur-Key"][0])
+	log.Printf("[client %s] Recieved batch from from %s\n",
+		req.RemoteAddr, keyName)
 
 	read, err := gzip.NewReader(req.Body)
 	if err != nil {
@@ -97,27 +115,34 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 
 // ping validates a connecting polymur-proxy's API key.
 func ping(w http.ResponseWriter, req *http.Request, keys *keysync.ApiKeys) {
-	k := req.Header["X-Polymur-Key"][0]
-	if validKey(k, keys) {
-		log.Printf("Key %s is valid\n", k)
-		io.WriteString(w, "valid\n")
+	requestKey := req.Header["X-Polymur-Key"][0]
+	keyName, valid := validateKey(requestKey, keys)
+
+	if valid {
+		log.Printf("[client %s] key for %s is valid\n",
+			req.RemoteAddr, keyName)
+		io.WriteString(w, "key is valid\n")
 	} else {
-		resp := fmt.Sprintf("Key %s is invalid", k)
-		log.Println(resp)
+		log.Printf("[client %s] %s is not a valid key\n",
+			req.RemoteAddr, requestKey)
+
+		resp := fmt.Sprintf("invalid key")
+		req.Close = true
 		w.WriteHeader(http.StatusUnauthorized)
 		io.WriteString(w, resp)
 	}
 }
 
-// validKey looks up a keys validity. This is
-// obviously a dummy function until a backing store
-// is implemented.
-func validKey(k string, keys *keysync.ApiKeys) bool {
-	log.Printf("Validating key: %s\n", k)
-
+// validateKey looks up if a key is registered in Consul
+// and returns the key name and key.
+func validateKey(k string, keys *keysync.ApiKeys) (string, bool) {
 	keys.Lock()
-	_, validity := keys.Keys[k]
+	name, valid := keys.Keys[k]
 	keys.Unlock()
 
-	return validity
+	if valid {
+		return name, true
+	} else {
+		return "", false
+	}
 }
