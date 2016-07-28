@@ -35,7 +35,8 @@ import (
 // used in the Graphite project carbon-cache daemon.
 type HashRing struct {
 	sync.Mutex
-	nodes nodeList
+	Vnodes int
+	nodes  nodeList
 }
 
 // node is an item to reference a nodeName
@@ -77,8 +78,12 @@ func (n nodeList) Swap(i, j int) {
 func (h *HashRing) AddNode(keyname, name string) {
 	h.Lock()
 
-	key := getHashKey(keyname)
-	h.nodes = append(h.nodes, &node{nodeId: key, nodeName: name})
+	for i := 0; i < h.Vnodes; i++ {
+		nodeName := fmt.Sprintf("%s:%d", keyname, i)
+		key := getHashKey(nodeName)
+		h.nodes = append(h.nodes, &node{nodeId: key, nodeName: name})
+	}
+
 	sort.Sort(h.nodes)
 
 	h.Unlock()
