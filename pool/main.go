@@ -55,7 +55,7 @@ type Pool struct {
 // NewPool initializes a *Pool.
 func NewPool() *Pool {
 	pool := &Pool{
-		Ring:       &consistenthash.HashRing{},
+		Ring:       &consistenthash.HashRing{Vnodes: 100},
 		Conns:      make(map[string]chan *string),
 		Registered: make(map[string]time.Time),
 		DistributionMethod: map[string]func(*Pool, []*string){
@@ -161,10 +161,8 @@ func (p *Pool) AddConn(dest Destination) {
 
 	// This replicates the destination key setup in
 	// the carbon-cache implementation. It's a string composed of the
-	// (destination IP, instance) tuple + :replica count. E.g. "('127.0.0.1', 'a'):0" for
-	// the first replica for instance a listening on 127.0.0.1.
-	// We statically append '0' since polymur isn't doing any replication handling.
-	destString := fmt.Sprintf("('%s', '%s'):0", dest.Ip, dest.Id)
+	// (destination IP, instance) tuple. E.g. "('127.0.0.1', 'a')"
+	destString := fmt.Sprintf("('%s', '%s')", dest.Ip, dest.Id)
 	p.Ring.AddNode(destString, dest.Name)
 }
 
@@ -197,7 +195,6 @@ func (p *Pool) RemoveConn(dest Destination) {
 		return
 	}
 	// If the queue had any in-flight messages, redistribute them.
-	close(q)
 	if len(q) > 0 {
 		log.Printf("Redistributing in-flight messages for %s", dest.Name)
 		for m := range q {
