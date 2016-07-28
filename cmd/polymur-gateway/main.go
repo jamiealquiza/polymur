@@ -29,6 +29,7 @@ import (
 	"syscall"
 
 	"github.com/jamiealquiza/polymur"
+	"github.com/jamiealquiza/polymur/keysync"
 	"github.com/jamiealquiza/polymur/listener"
 	"github.com/jamiealquiza/polymur/output"
 	"github.com/jamiealquiza/polymur/pool"
@@ -48,6 +49,7 @@ var (
 		distribution string
 		cert         string
 		key          string
+		devmode      bool
 	}
 
 	sig_chan = make(chan os.Signal)
@@ -64,6 +66,7 @@ func init() {
 	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, hash-route")
 	flag.StringVar(&options.cert, "cert", "", "TLS Certificate")
 	flag.StringVar(&options.key, "key", "", "TLS Key")
+	flag.BoolVar(&options.devmode, "dev-mode", false, "Dev mode: disables Consul API key store; uses '123'")
 	flag.Parse()
 }
 
@@ -104,6 +107,14 @@ func main() {
 	sentCntr := &statstracker.Stats{}
 	go statstracker.StatsTracker(pool, sentCntr)
 
+	// API key sync service.
+	apiKeys := keysync.NewApiKeys()
+	if !options.devmode {
+		go keysync.Run(apiKeys)
+	} else {
+		apiKeys.Keys["123"] = "dev"
+	}
+
 	// HTTP Listener.
 	go listener.HttpListener(&listener.HttpListenerConfig{
 		Addr:          options.addr,
@@ -111,6 +122,7 @@ func main() {
 		Cert:          options.cert,
 		Key:           options.key,
 		Stats:         sentCntr,
+		Keys:          apiKeys,
 	})
 
 	// API listener.

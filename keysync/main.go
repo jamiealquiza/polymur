@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/jamiealquiza/consul/api"
 )
 
 type ApiKeys struct {

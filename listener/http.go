@@ -29,6 +29,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/jamiealquiza/polymur/keysync"
 	"github.com/jamiealquiza/polymur/statstracker"
 )
 
@@ -38,6 +39,7 @@ type HttpListenerConfig struct {
 	Cert          string
 	Key           string
 	Stats         *statstracker.Stats
+	Keys          *keysync.ApiKeys
 }
 
 // HttpListener accepts connections from a polymur-proxy
@@ -45,7 +47,7 @@ type HttpListenerConfig struct {
 // batches of compressed messages are passed to /ingest handler.
 func HttpListener(config *HttpListenerConfig) {
 	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config) })
-	http.HandleFunc("/ping", ping)
+	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) { ping(w, req, config.Keys) })
 
 	err := http.ListenAndServeTLS(":443", config.Cert, config.Key, nil)
 	if err != nil {
@@ -94,9 +96,9 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 }
 
 // ping validates a connecting polymur-proxy's API key.
-func ping(w http.ResponseWriter, req *http.Request) {
+func ping(w http.ResponseWriter, req *http.Request, keys *keysync.ApiKeys) {
 	k := req.Header["X-Polymur-Key"][0]
-	if validKey(k) {
+	if validKey(k, keys) {
 		log.Printf("Key %s is valid\n", k)
 		io.WriteString(w, "valid\n")
 	} else {
@@ -110,11 +112,12 @@ func ping(w http.ResponseWriter, req *http.Request) {
 // validKey looks up a keys validity. This is
 // obviously a dummy function until a backing store
 // is implemented.
-func validKey(k string) bool {
+func validKey(k string, keys *keysync.ApiKeys) bool {
 	log.Printf("Validating key: %s\n", k)
-	if k == "123" {
-		return true
-	} else {
-		return false
-	}
+
+	keys.Lock()
+	_, validity := keys.Keys[k]
+	keys.Unlock()
+
+	return validity
 }
