@@ -30,6 +30,8 @@ Real world load reduction - two carbon-relay daemons behind haproxy being replac
 
 ### Installation
 
+Requires Go 1.6
+
 - `go get -u github.com/jamiealquiza/polymur/...`
 - `go install github.com/jamiealquiza/polymur/cmd/polymur`
 - Binary will be found at `$GOPATH/bin/polymur`

@@ -14,6 +14,8 @@ Polymur-proxy checks the local API key cache with every batch received from conn
 
 # Installation
 
+Requires Go 1.6
+
 - `go get -u github.com/jamiealquiza/polymur/...`
 - `go install github.com/jamiealquiza/polymur/cmd/polymur-gateway`
 - Binary will be found at `$GOPATH/bin/polymur-gateway`

@@ -10,6 +10,8 @@ Messages are batched, compressed (gzip; results in a ~5x reduction in outbound n
 
 # Installation
 
+Requires Go 1.6
+
 - `go get -u github.com/jamiealquiza/polymur/...`
 - `go install github.com/jamiealquiza/polymur/cmd/polymur-proxy`
 - Binary will be found at `$GOPATH/bin/polymur-proxy`
