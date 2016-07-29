@@ -16,13 +16,13 @@ Polymur was created to introduce more flexibility into the way metrics streams a
 
 Terminating connections from all sending hosts and distributing to downstream Graphite servers:
 
-![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-relay0.png)
+![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-relay1.png)
 
 #### Polymur replacing local relays
 
 Polymur running on a Graphite server in hash-routing mode, distributing metrics from upstream relays to local carbon-cache daemons:
 
-![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-relay1.png)
+![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-relay0.png)
 
 Real world load reduction - two carbon-relay daemons behind haproxy being replaced with a single Polymur instance:
 
