@@ -51,13 +51,13 @@ Usage of ./polymur-gateway:
 ### Generate cert/keys
 Polymur-gateway currently uses a simple cert/key setup with clients distributed to connecting polymur-proxy instances. Generate test keys:
 <pre>
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout key.pem -out cert.pem
+$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout key.pem -out cert.pem
 </pre>
 
 ### Initialize Consul key store
 Start Consul
 <pre>
-% ./consul agent -dev
+$ ./consul agent -dev
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
@@ -65,13 +65,13 @@ Start Consul
 
 Register a test key
 <pre>
-% curl -XPUT localhost:8500/v1/kv/polymur/gateway/keys/test-user -d 'test-key'
+$ curl -XPUT localhost:8500/v1/kv/polymur/gateway/keys/test-user -d 'test-key'
 true
 </pre>
 
 ### Start Polymur-gateway
 <pre>
-sudo ./polymur-gateway -key="/path/to/key.pem" -cert="/path/to/cert.pem" -console-out
+$ ./polymur-gateway -key="/path/to/key.pem" -cert="/path/to/cert.pem" -console-out
 2016/07/29 14:16:13 Running API key sync
 2016/07/29 14:16:13 API started: localhost:2030
 2016/07/29 14:16:13 Runstats started: localhost:2020
