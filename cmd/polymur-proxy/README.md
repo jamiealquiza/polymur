@@ -6,7 +6,7 @@ Polymur-proxy is a daemon for off-site metrics forwarding over HTTPS. It connect
 
 Messages are batched, compressed (gzip; results in a ~5x reduction in outbound network bandwidth) and forwarded by a configurable number of workers (`-workers` directive) to the configured polymur-gateway (`-gateway` directive).
 
-![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.jpg)
+![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.png)
 
 # Installation
 

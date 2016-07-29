@@ -6,7 +6,7 @@ Polymur-gateway is a daemon for ingesting metrics forwarded over HTTPS. It accep
 
 Messages batches are received, decompressed (gzip) and distributed to the configured `-destinations`.
 
-![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.jpg)
+![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.png)
 
 # Installation
 
