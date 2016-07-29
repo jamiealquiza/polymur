@@ -98,11 +98,11 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 	log.Printf("HTTP writer #%d started\n", workerId)
 
 	for m := range config.IncomingQueue {
+		data, count := packDataPoints(m)
+
 		log.Printf("[worker #%d] sending batch (%d data points)\n",
 			workerId,
-			len(m))
-
-		data := packDataPoints(m)
+			count)
 
 		response, err := apiPost(config, "/ingest", data)
 		if err != nil {
@@ -141,7 +141,9 @@ func apiPost(config *HttpWriterConfig, path string, postData io.Reader) (*GwResp
 
 // packDataPoints takes a []*string batch of data points,
 // compresses them and returns the reader.
-func packDataPoints(d []*string) io.Reader {
+func packDataPoints(d []*string) (io.Reader, int) {
+	var count int
+
 	var compressed bytes.Buffer
 	w := gzip.NewWriter(&compressed)
 
@@ -151,9 +153,10 @@ func packDataPoints(d []*string) io.Reader {
 		}
 		w.Write([]byte(*s))
 		w.Write([]byte{10})
+		count++
 	}
 
 	w.Close()
 
-	return &compressed
+	return &compressed, count
 }
