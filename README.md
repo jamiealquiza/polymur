@@ -2,7 +2,7 @@
 
 Undergoing active dev (although currently being used in production with thousands of hosts). Please visit [issues](https://github.com/jamiealquiza/polymur/issues).
 
-Also see [polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) and [polymur-gateway](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-gateway) services for offsite metrics forwarding over HTTPS.
+Also see [Polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) and [Polymur-gateway](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-gateway) services for offsite metrics forwarding over HTTPS.
 
 ### Overview
 
@@ -30,7 +30,7 @@ Real world load reduction - two carbon-relay daemons behind haproxy being replac
 
 ### Installation
 
-- `go get github.com/jamiealquiza/polymur`
+- `go get -u github.com/jamiealquiza/polymur/...`
 - `go install github.com/jamiealquiza/polymur/cmd/polymur`
 - Binary will be found at `$GOPATH/bin/polymur`
 
