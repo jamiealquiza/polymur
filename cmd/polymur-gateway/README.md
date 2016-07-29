@@ -8,7 +8,7 @@ Messages batches are received, decompressed (gzip) and distributed to the config
 
 ![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.png)
 
-The Polymur-gateway API key service is backed with Consul's KV store and references KV pairs under the `/polymur/gateway/keys/` namespace. Keys are fetch on startup and synced every 30s to an in-memory cache. In the case that Consul becomes unreachable, the local key cache is simply not updated. 
+The Polymur-gateway API key service is backed with Consul's KV store and references KV pairs under the `/polymur/gateway/keys/` namespace. Keys are fetched on startup and synced every 30s to an in-memory cache. In the case that Consul becomes unreachable, the local key cache is simply not updated. 
 
 Polymur-proxy checks the local API key cache with every batch received from connecting Polymur-proxy instances. If a previously valid key were to be unregistered, the connecting proxy instance will be disconnected with an invalid key error on the first batch attempt following a key synchronization within the Polymur-gateway instance.
 
