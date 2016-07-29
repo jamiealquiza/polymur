@@ -51,7 +51,7 @@ $ ./polymur-proxy -cert="/path/to/cert.pem" -gateway="https://localhost:443" -ap
 2016/07/29 14:26:53 HTTP writer #2 started
 2016/07/29 14:26:53 HTTP writer #0 started
 2016/07/29 14:26:53 HTTP writer #1 started
-2016/07/29 14:26:53 Metrics listener started: 0.0.0.0:20032016/07/29 14:26:53 Runstats started: localhost:202
+2016/07/29 14:26:53 Metrics listener started: 0.0.0.0:20032016/07/29 14:26:53 Runstats started: localhost:2020
 </pre>
 
 Polymur-gateway authorizes key
