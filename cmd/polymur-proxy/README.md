@@ -58,7 +58,7 @@ $ ./polymur-proxy -cert="/path/to/cert.pem" -gateway="https://localhost:443" -ap
 
 Polymur-gateway authorizes key
 <pre>
-2016/07/29 14:26:53 [client 127.0.0.1:50352] key for polymur/gateway/keys/test-user is valid
+2016/07/29 14:26:53 [client 127.0.0.1:50352] key for test-user is valid
 </pre>
 
 ### Push Test Data
@@ -76,7 +76,7 @@ Polymur-proxy receives and forwards data
 
 Polymur-gateway validates key and handles request (writes to console since the gateway was started with the `-console-out` flag)
 <pre>
-2016/07/29 14:30:54 [client 127.0.0.1:50352] Recieved batch from from polymur/gateway/keys/test-user
+2016/07/29 14:30:54 [client 127.0.0.1:50352] Recieved batch from from test-user
 some.test.data 1337 1469802654
 2016/07/29 14:30:55 Last 5.00s: Received 1 data points | Avg: 0.20/sec.
 </pre>
