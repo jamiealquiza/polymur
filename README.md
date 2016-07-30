@@ -65,6 +65,7 @@ Usage of ./polymur:
 Listening for incoming metrics on `0.0.0.0:2003` and mirroring to `10.0.5.20:2003` and `10.0.5.30:2003`:
 <pre>
 ./polymur -destinations="10.0.5.20:2003,10.0.5.30:2003" -metrics-flush=30 -"listen-addr=0.0.0.0:2003" -distribution="broadcast"
+2015/05/14 15:19:08 ::: Polymur :::
 2015/05/14 15:19:08 Registered destination 10.0.5.20:2003
 2015/05/14 15:19:08 Registered destination 10.0.5.30:2003
 2015/05/14 15:19:08 Adding destination to connection pool: 10.0.5.30:2003
@@ -83,6 +84,7 @@ Listening for incoming metrics on `0.0.0.0:2003` and mirroring to `10.0.5.20:200
 Polymur started with no initial destinations:
 <pre>
 ./polymur
+2015/05/14 09:09:15 ::: Polymur :::
 2015/05/14 09:09:15 Metrics listener started: 0.0.0.0:2003
 2015/05/14 09:09:15 API started: localhost:2030
 2015/05/14 09:09:15 Runstats started: localhost:2020

@@ -74,6 +74,7 @@ true
 ### Start Polymur-gateway
 <pre>
 $ ./polymur-gateway -key="/path/to/key.pem" -cert="/path/to/cert.pem" -console-out
+2016/07/29 14:16:13 ::: Polymur-gatway :::
 2016/07/29 14:16:13 Running API key sync
 2016/07/29 14:16:13 API started: localhost:2030
 2016/07/29 14:16:13 Runstats started: localhost:2020

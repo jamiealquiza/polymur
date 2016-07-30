@@ -73,6 +73,7 @@ func runControl() {
 }
 
 func main() {
+	log.Println("::: Polymur-proxy :::")
 	ready := make(chan bool, 1)
 
 	incomingQueue := make(chan []*string, options.queuecap)

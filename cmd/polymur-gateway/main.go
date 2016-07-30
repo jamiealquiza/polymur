@@ -79,6 +79,8 @@ func runControl() {
 }
 
 func main() {
+	log.Println("::: Polymur-gateway :::")
+
 	ready := make(chan bool, 1)
 
 	incomingQueue := make(chan []*string, 32768)

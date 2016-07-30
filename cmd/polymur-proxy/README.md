@@ -48,6 +48,7 @@ See the Polymur-gateway [readme](https://github.com/jamiealquiza/polymur/tree/ma
 ### Run Polymur-proxy
 <pre>
 $ ./polymur-proxy -cert="/path/to/cert.pem" -gateway="https://localhost:443" -api-key="test-key" -stat-addr="localhost:2021"
+2016/07/29 14:26:53 ::: Polymur-proxy :::
 2016/07/29 14:26:53 Pinging gateway https://localhost:443
 2016/07/29 14:26:53 Connection to gateway https://localhost:443 successful
 2016/07/29 14:26:53 HTTP writer #2 started
