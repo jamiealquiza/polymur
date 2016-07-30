@@ -49,10 +49,13 @@ func HttpListener(config *HttpListenerConfig) {
 	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config) })
 	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) { ping(w, req, config.Keys) })
 
-	err := http.ListenAndServeTLS(":443", config.Cert, config.Key, nil)
+	log.Printf("Listening on %s\n", config.Addr)
+
+	err := http.ListenAndServeTLS(config.Addr, config.Cert, config.Key, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
+
 }
 
 // ingest is a handler that accepts a batch of compressed data points.
