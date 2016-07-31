@@ -137,3 +137,7 @@ Terminology:
 Polymur listens on the configured addr:port for incoming connections, each connection handled in a dedicated Goroutine. A connection Goroutine reads the inbound stream and allocates a message string at LF boundaries. Messages are batched and flushed on size and time thresholds (to reduce [channel operations](https://grey-boundary.io/concurrent-communication-performance-in-go/)). 
 
 Message batches from the inbound queue are then distributed (broadcast or hash-routed) to a dedicated queue for each output destination. Destination output is also handled using dedicated Goroutines, where transient latency or full disconnects to one destination will not impact write performance to another destination. If a destination becomes unreachable, the endpoint will be retried at 10 second intervals while the respective destination queue buffers new incoming messages. Per destination queue capacity is determined by the `-queue-cap` directive. Any destination queue with an outstanding length greater than 0 will be logged to stdout. Any destination queue that exceeds the configured `-queue-cap` will not receive any new messages until the queue is cleared. If the distribution mode is configured as hash-route, three consecutive reconnect attempt failures will result in removing the connection from the connection pool and redistributing any in-flight messages to a retry-queue for distribution to remaining healthy destinations.
+
+Diagram:
+
+![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-internals.jpg)
