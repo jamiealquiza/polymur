@@ -40,7 +40,7 @@ func NewApiKeys() *ApiKeys {
 	}
 }
 
-func Run(keys *ApiKeys) {
+func Run(localKeys *ApiKeys) {
 	interval := 30
 	timer := time.NewTicker(time.Duration(interval) * time.Second)
 	defer timer.Stop()
@@ -64,33 +64,39 @@ func Run(keys *ApiKeys) {
 			goto wait
 		}
 
-		keys.Lock()
-		// Update / add keys.
-		for _, d := range registeredKeys {
-			name, apikey := string(d.Key), string(d.Value)
-
-			if _, present := keys.Keys[apikey]; !present {
-				keys.Keys[apikey] = name
-				newKeys++
-			}
-		}
-		// Purge keys.
-		for k, _ := range keys.Keys {
-			if !keyPresent(k, registeredKeys) {
-				delete(keys.Keys, k)
-				removedKeys++
-			}
-		}
-		keys.Unlock()
+		newKeys, removedKeys = Sync(localKeys, registeredKeys)
 
 		log.Printf("API keys refreshed: %d new, %d removed\n",
 			newKeys, removedKeys)
 
-		newKeys, removedKeys = 0, 0
-
 	wait:
 		<-timer.C
 	}
+}
+
+func Sync(localKeys *ApiKeys, registeredKeys api.KVPairs) (uint8, uint8) {
+		var newKeys, removedKeys uint8
+
+		localKeys.Lock()
+		// Update / add keys.
+		for _, d := range registeredKeys {
+			name, apikey := string(d.Key), string(d.Value)
+
+			if _, present := localKeys.Keys[apikey]; !present {
+				localKeys.Keys[apikey] = name
+				newKeys++
+			}
+		}
+		// Purge keys.
+		for k, _ := range localKeys.Keys {
+			if !keyPresent(k, registeredKeys) {
+				delete(localKeys.Keys, k)
+				removedKeys++
+			}
+		}
+		localKeys.Unlock()
+
+		return newKeys, removedKeys
 }
 
 func keyPresent(k string, kvp api.KVPairs) bool {
