@@ -144,10 +144,7 @@ func validateKey(k string, keys *keysync.ApiKeys) (string, bool) {
 	keys.Unlock()
 
 	if valid {
-		// Strip the namespace prefix.
-		// Currently a key will return with
-		// `polymur/gateway/keys/keyname`.
-		return name[21:], true
+		return name, true
 	} else {
 		return "", false
 	}

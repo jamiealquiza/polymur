@@ -34,6 +34,34 @@ type ApiKeys struct {
 	Keys map[string]string
 }
 
+// KeyNameByKey returns a keys name by key lookup.
+func (keys *ApiKeys) KeyNameByKey(k string) string {
+	keys.Lock()
+	name, valid := keys.Keys[k]
+	keys.Unlock()
+
+	if valid {
+		return name
+	} else {
+		return ""
+	}
+}
+
+// KeyNameExists returns whether or not a key by name
+// exists.
+func (keys *ApiKeys) KeyNameExists(k string) bool {
+	keys.Lock()
+	defer keys.Unlock()
+
+	for _, keyName := range keys.Keys {
+		if keyName == k {
+			return true
+		}
+	}
+
+	return false
+}
+
 func NewApiKeys() *ApiKeys {
 	return &ApiKeys{
 		Keys: make(map[string]string),
@@ -74,32 +102,38 @@ func Run(localKeys *ApiKeys) {
 	}
 }
 
+// Sync syncronizes a *ApiKeys with what is registered
+// in Consul and returns the new keys and removed keys count delta.
 func Sync(localKeys *ApiKeys, registeredKeys api.KVPairs) (uint8, uint8) {
-		var newKeys, removedKeys uint8
+	var newKeys, removedKeys uint8
 
-		localKeys.Lock()
-		// Update / add keys.
-		for _, d := range registeredKeys {
-			name, apikey := string(d.Key), string(d.Value)
+	localKeys.Lock()
+	// Update / add keys.
+	for _, d := range registeredKeys {
+		// Strip the namespace prefix.
+		// Currently `polymur/gateway/keys/keyname`.
+		name, apikey := string(d.Key[21:]), string(d.Value)
 
-			if _, present := localKeys.Keys[apikey]; !present {
-				localKeys.Keys[apikey] = name
-				newKeys++
-			}
+		if _, present := localKeys.Keys[apikey]; !present {
+			localKeys.Keys[apikey] = name
+			newKeys++
 		}
-		// Purge keys.
-		for k, _ := range localKeys.Keys {
-			if !keyPresent(k, registeredKeys) {
-				delete(localKeys.Keys, k)
-				removedKeys++
-			}
+	}
+	// Purge keys.
+	for k, _ := range localKeys.Keys {
+		if !keyRegistered(k, registeredKeys) {
+			delete(localKeys.Keys, k)
+			removedKeys++
 		}
-		localKeys.Unlock()
+	}
+	localKeys.Unlock()
 
-		return newKeys, removedKeys
+	return newKeys, removedKeys
 }
 
-func keyPresent(k string, kvp api.KVPairs) bool {
+// keyRegistered checks whether a key is
+// registered in Consul.
+func keyRegistered(k string, kvp api.KVPairs) bool {
 	for _, kv := range kvp {
 		key := string(kv.Value)
 		if k == key {
