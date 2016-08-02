@@ -6,6 +6,8 @@ Polymur-gateway is a daemon for ingesting metrics forwarded over HTTPS. It accep
 
 Messages batches are received, decompressed (gzip) and distributed to the configured `-destinations`.
 
+Optionally (via `-key-prefix`), all ingested metrics can be prefixed with the name of the connecting Polymur-proxy's API key name, allowing automatic, per API user namespace separation. For instance, `web01.app.rate` originated from a Polymur-proxy instance configured with the API key where the key name is `customer-a`, the metric will be rewritten inline as `customer-a.web01.app.rate` before being sent the downstream destinations.
+
 ![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.png)
 
 The Polymur-gateway API key service is backed with Consul's KV store and references KV pairs under the `/polymur/gateway/keys/` namespace. Keys are fetched on startup and synced every 30s to an in-memory cache. In the case that Consul becomes unreachable, the local key cache is simply not updated. 
@@ -38,6 +40,8 @@ Usage of ./polymur-gateway:
         Destination distribution methods: broadcast, hash-route (default "broadcast")
   -key string
         TLS Key
+  -key-prefix
+      If enabled, prepends all metrics with the origin polymur-proxy API key's name
   -listen-addr string
         Polymur-gateway listen address (default "0.0.0.0:443")
   -metrics-flush int

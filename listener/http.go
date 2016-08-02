@@ -38,6 +38,7 @@ type HttpListenerConfig struct {
 	IncomingQueue chan []*string
 	Cert          string
 	Key           string
+	KeyPrefix     bool
 	Stats         *statstracker.Stats
 	Keys          *keysync.ApiKeys
 }
@@ -105,6 +106,9 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 
 		if len(l) > 0 {
 			m := string(l[:len(l)-1])
+			if config.KeyPrefix {
+				m = fmt.Sprintf("%s.%s", keyName, m)
+			}
 			batch = append(batch, &m)
 			config.Stats.UpdateCount(1)
 		}

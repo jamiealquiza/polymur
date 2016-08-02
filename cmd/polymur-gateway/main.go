@@ -49,7 +49,8 @@ var (
 		distribution string
 		cert         string
 		key          string
-		devmode      bool
+		devMode      bool
+		keyPrefix    bool
 	}
 
 	sig_chan = make(chan os.Signal)
@@ -66,7 +67,8 @@ func init() {
 	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, hash-route")
 	flag.StringVar(&options.cert, "cert", "", "TLS Certificate")
 	flag.StringVar(&options.key, "key", "", "TLS Key")
-	flag.BoolVar(&options.devmode, "dev-mode", false, "Dev mode: disables Consul API key store; uses '123'")
+	flag.BoolVar(&options.devMode, "dev-mode", false, "Dev mode: disables Consul API key store; uses '123'")
+	flag.BoolVar(&options.keyPrefix, "key-prefix", false, "If enabled, prepends all metrics with the origin polymur-proxy API key's name")
 	flag.Parse()
 }
 
@@ -111,7 +113,7 @@ func main() {
 
 	// API key sync service.
 	apiKeys := keysync.NewApiKeys()
-	if !options.devmode {
+	if !options.devMode {
 		go keysync.Run(apiKeys)
 	} else {
 		apiKeys.Keys["123"] = "dev"
@@ -122,6 +124,7 @@ func main() {
 		Addr:          options.addr,
 		IncomingQueue: incomingQueue,
 		Cert:          options.cert,
+		KeyPrefix:     options.keyPrefix,
 		Key:           options.key,
 		Stats:         sentCntr,
 		Keys:          apiKeys,
