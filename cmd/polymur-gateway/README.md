@@ -65,10 +65,18 @@ $ ./consul agent -dev
 ==> Consul agent running!
 </pre>
 
-Register a test key
+Register a test key (with curl)
 <pre>
 $ curl -XPUT localhost:8500/v1/kv/polymur/gateway/keys/test-user -d 'test-key'
 true
+</pre>
+
+**or**
+
+Register a test key with [pgw-key](https://github.com/jamiealquiza/polymur/tree/master/cmd/utils/pgw-key)
+<pre>
+% ./pgw-key create test-key
+Successfully registered test-key with key 19d2d0f0130a9c9a6f97bdb0
 </pre>
 
 ### Start Polymur-gateway
