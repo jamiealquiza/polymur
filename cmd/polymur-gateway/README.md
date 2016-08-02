@@ -6,7 +6,7 @@ Polymur-gateway is a daemon for ingesting metrics forwarded over HTTPS. It accep
 
 Messages batches are received, decompressed (gzip) and distributed to the configured `-destinations`.
 
-Optionally (via `-key-prefix`), all ingested metrics can be prefixed with the name of the connecting Polymur-proxy's API key name, allowing automatic, per API user namespace separation. For instance, `web01.app.rate` originated from a Polymur-proxy instance configured with the API key where the key name is `customer-a`, the metric will be rewritten inline as `customer-a.web01.app.rate` before being sent the downstream destinations.
+Optionally (via `-key-prefix`), all ingested metrics can be prefixed with the name of the connecting Polymur-proxy's API key name, allowing automatic, per API user namespace separation with no changes required on the sending infrastructure. For instance, if the metric `web01.app.rate` originated from a Polymur-proxy instance configured with the API key where the key name is `customer-a`, the metric will be rewritten inline as `customer-a.web01.app.rate` before being sent the downstream destinations.
 
 ![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.png)
 
