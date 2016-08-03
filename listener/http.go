@@ -50,13 +50,23 @@ func HttpListener(config *HttpListenerConfig) {
 	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config) })
 	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) { ping(w, req, config.Keys) })
 
-	log.Printf("Listening on %s\n", config.Addr)
+	if config.Cert != "" && config.Key != "" {
+		go func() {
+			log.Printf("HTTPS listening on %s:443\n", config.Addr)
+			err := http.ListenAndServeTLS(config.Addr+":443", config.Cert, config.Key, nil)
+			if err != nil {
+				log.Fatalf("ListenAndServe: %s\n", err)
+			}
+		}()
 
-	err := http.ListenAndServeTLS(config.Addr, config.Cert, config.Key, nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
 	}
-
+	go func() {
+		log.Printf("HTTP listening on %s:80\n", config.Addr)
+		err := http.ListenAndServe(config.Addr+":80", nil)
+		if err != nil {
+			log.Fatalf("ListenAndServe: %s\n", err)
+		}
+	}()
 }
 
 // ingest is a handler that accepts a batch of compressed data points.
@@ -67,11 +77,20 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 
 	// Validate key on every batch.
 	// May or may not be a good idea.
-	requestKey := req.Header["X-Polymur-Key"][0]
+	requestKey := req.Header.Get("X-Polymur-Key")
+
+	var client string
+	xff := req.Header.Get("x-forwarded-for")
+	if xff != "" {
+		client = xff
+	} else {
+		client = req.RemoteAddr
+	}
+
 	keyName, valid := validateKey(requestKey, config.Keys)
 	if !valid {
 		log.Printf("[client %s] %s is not a valid key\n",
-			req.RemoteAddr, requestKey)
+			client, requestKey)
 
 		resp := fmt.Sprintf("invalid key")
 		req.Close = true
@@ -83,7 +102,7 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 
 	io.WriteString(w, "Batch Received\n")
 	log.Printf("[client %s] Recieved batch from from %s\n",
-		req.RemoteAddr, keyName)
+		client, keyName)
 
 	read, err := gzip.NewReader(req.Body)
 	if err != nil {
@@ -122,16 +141,24 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 
 // ping validates a connecting polymur-proxy's API key.
 func ping(w http.ResponseWriter, req *http.Request, keys *keysync.ApiKeys) {
-	requestKey := req.Header["X-Polymur-Key"][0]
+	requestKey := req.Header.Get("X-Polymur-Key")
 	keyName, valid := validateKey(requestKey, keys)
+
+	var client string
+	xff := req.Header.Get("x-forwarded-for")
+	if xff != "" {
+		client = xff
+	} else {
+		client = req.RemoteAddr
+	}
 
 	if valid {
 		log.Printf("[client %s] key for %s is valid\n",
-			req.RemoteAddr, keyName)
+			client, keyName)
 		io.WriteString(w, "key is valid\n")
 	} else {
 		log.Printf("[client %s] %s is not a valid key\n",
-			req.RemoteAddr, requestKey)
+			client, requestKey)
 
 		resp := fmt.Sprintf("invalid key")
 		req.Close = true

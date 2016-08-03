@@ -57,7 +57,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0:443", "Polymur-gateway listen address")
+	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0", "Polymur-gateway listen address")
 	flag.StringVar(&options.apiAddr, "api-addr", "localhost:2030", "API listen address")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
 	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity per destination")
