@@ -28,7 +28,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jamiealquiza/polymur"
 	"github.com/jamiealquiza/polymur/listener"
 	"github.com/jamiealquiza/polymur/output"
 	"github.com/jamiealquiza/polymur/statstracker"
@@ -80,7 +79,7 @@ func main() {
 
 	// Output writer.
 	if options.console {
-		go polymur.OutputConsole(incomingQueue)
+		go output.OutputConsole(incomingQueue)
 		ready <- true
 	} else {
 		go output.HttpWriter(
