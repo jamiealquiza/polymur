@@ -71,10 +71,10 @@ Listening for incoming metrics on `0.0.0.0:2003` and mirroring to `10.0.5.20:200
 2015/05/14 15:19:09 API started: localhost:2030
 2015/05/14 15:19:09 Runstats started: localhost:2020
 2015/05/14 15:19:09 Metrics listener started: 0.0.0.0:2003
-2015/05/14 15:19:14 Last 5s: Received 7276 data points | Avg: 1455.20/sec. | Inbound queue length: 0
-2015/05/14 15:19:19 Last 5s: Received 6471 data points | Avg: 1294.20/sec. | Inbound queue length: 0
-2015/05/14 15:19:24 Last 5s: Received 6744 data points | Avg: 1348.80/sec. | Inbound queue length: 0
-2015/05/14 15:19:29 Last 5s: Received 5806 data points | Avg: 1161.20/sec. | Inbound queue length: 0
+2015/05/14 15:19:14 Last 5s: Received 7276 data points | Avg: 1455.20/sec.
+2015/05/14 15:19:19 Last 5s: Received 6471 data points | Avg: 1294.20/sec.
+2015/05/14 15:19:24 Last 5s: Received 6744 data points | Avg: 1348.80/sec.
+2015/05/14 15:19:29 Last 5s: Received 5806 data points | Avg: 1161.20/sec.
 </pre>
 
 #### Changing destinations
