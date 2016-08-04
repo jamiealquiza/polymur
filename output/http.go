@@ -53,22 +53,27 @@ type GwResp struct {
 // by hitting the /ping path with a valid client API key registered
 // with the polymur-gateway.
 func HttpWriter(config *HttpWriterConfig, ready chan bool) {
-	cert, err := ioutil.ReadFile(config.Cert)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
 
-	// Use client cert.
-	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM(cert)
-	if !ok {
-		log.Fatal("Error parsing certificate")
-	}
+	if config.Cert != "" {
+		cert, err := ioutil.ReadFile(config.Cert)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
 
-	tlsConf := &tls.Config{RootCAs: roots}
-	tr := &http.Transport{TLSClientConfig: tlsConf}
-	config.client = &http.Client{Transport: tr}
+		// Use client cert.
+		roots := x509.NewCertPool()
+		ok := roots.AppendCertsFromPEM(cert)
+		if !ok {
+			log.Fatal("Error parsing certificate")
+		}
+
+		tlsConf := &tls.Config{RootCAs: roots}
+		tr := &http.Transport{TLSClientConfig: tlsConf}
+		config.client = &http.Client{Transport: tr}
+	} else {
+		config.client = &http.Client{}
+	}
 
 	// Try connection, verify api key.
 	log.Printf("Pinging gateway %s\n", config.Gateway)
