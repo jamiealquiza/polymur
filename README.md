@@ -1,14 +1,12 @@
 # polymur
 
-Undergoing active dev (although currently being used in production with thousands of hosts). Please visit [issues](https://github.com/jamiealquiza/polymur/issues).
-
-Also see [Polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) and [Polymur-gateway](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-gateway) services for offsite metrics forwarding over HTTPS.
+See [Polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) and [Polymur-gateway](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-gateway) services for offsite metrics forwarding over HTTPS.
 
 ### Overview
 
-Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimited messages) from tools like Collectd or Statsd, and either mirrors (broadcast) or hash routes* the output to one or more destinations - including more Polymur instances or native Graphite carbon-cache instances. Polymur is efficient at terminating many thousands of connections and provides in-line buffering, per-destination flow control, runtime destination manipulation ("Let's mirror all our production metrics to x.x.x.x"), and failover redistribution (in hash-routing mode: if node C fails, redistribute in-flight metrics for this destination to nodes A and B).
+Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimited messages) from tools like Collectd or Statsd, and either mirrors (broadcast) or hash routes* the output to one or more destinations - including more Polymur instances, native Graphite carbon-cache instances, and other Graphite protocol compatible services (such as InfluxDB). Polymur is efficient at terminating many thousands of connections and provides in-line buffering, per-destination flow control, runtime destination manipulation ("Let's mirror all our production metrics to x.x.x.x"), and failover redistribution (in hash-routing mode: if node C fails, redistribute in-flight metrics for this destination to nodes A and B).
 
-Polymur was created to introduce more flexibility into the way metrics streams are managed and to reduce the total number of components needed to operate Graphite deployments. It's built in a highly concurrent fashion and doesn't need multiple instances per-node with a local load-balancer if it's being used as a Carbon relay upstream from your Graphite servers. If it's being used as a Carbon relay on your Graphite server to distribute metrics to Carbon-cache daemons, daemons can self register themselves on start using Polymur's simple API.
+Polymur was created to introduce more flexibility into the way metrics streams are managed and to reduce the total number of components needed to operate Graphite deployments. It's built in a natively concurrent fashion and doesn't require multiple instances per-node with a local load-balancer if it's being used as a Carbon relay upstream from your Graphite servers. If it's being used as a Carbon relay on your Graphite server to distribute metrics to Carbon-cache daemons, daemons can self register themselves on start using Polymur's simple API.
 
 *Polymur's hash-route algo implementation mirrors the Graphite implementation; this is important since the Graphite project's web-app uses the same hash-routing mechanism for cached metric lookups.
 
