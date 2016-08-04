@@ -1,12 +1,12 @@
 # Overview
 
-Under active development.
-
 Polymur-proxy is a daemon for off-site metrics forwarding over HTTPS. It connects to a remote [Polymur-gateway](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-gateway) instance with a valid API key issued by the gateway service. Mechanically, Polymur-proxy is a standard [Polymur](https://github.com/jamiealquiza/polymur) daemon with an HTTPS output writer. Therefore, Polymur-proxy can natively accept inputs from collectd, statsd and any other tools that implement the standard 'Graphite protocol'.
+
+![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.png)
 
 Messages are batched, compressed (gzip; results in a ~5x reduction in outbound network bandwidth) and forwarded by a configurable number of workers (`-workers` directive) to the configured Polymur-gateway (`-gateway` directive).
 
-![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.png)
+Specifying a `-cert` is optional if using a self-signed certificate where it would otherwise fail as invalid.
 
 # Installation
 

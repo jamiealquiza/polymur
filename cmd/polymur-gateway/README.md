@@ -1,14 +1,16 @@
 # Overview
 
-Under active development.
+Polymur-gateway is a daemon for ingesting metrics forwarded over HTTPS. It accepts connections from remote [Polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) instances with valid API keys registered with the gateway service. Mechanically, polymur-gateway is a standard [Polymur](https://github.com/jamiealquiza/polymur) daemon with HTTP/HTTPS listeners. Therefore, Polymur-gateway can receive metrics forwarded by a Polymur-proxy instance and distribute to downstream Graphite-compatible daemons (Polymur, Graphite carbon-relay and carbon-cache, etc.).
 
-Polymur-gateway is a daemon for ingesting metrics forwarded over HTTPS. It accepts connections from remote [Polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) instances with valid API keys registered with the gateway service. Mechanically, polymur-gateway is a standard [Polymur](https://github.com/jamiealquiza/polymur) daemon with an HTTPS listener. Therefore, Polymur-gateway can receive metrics forwarded by a Polymur-proxy instance and distribute to downstream Graphite-compatible daemons (Polymur, Graphite carbon-relay and carbon-cache, etc.).
+![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.png)
 
 Messages batches are received, decompressed (gzip) and distributed to the configured `-destinations`.
 
 Optionally (via `-key-prefix`), all ingested metrics can be prefixed with the name of the connecting Polymur-proxy's API key name, allowing automatic, per API user namespace separation with no changes required on the sending infrastructure. For instance, if the metric `web01.app.rate` originated from a Polymur-proxy instance configured with the API key where the key name is `customer-a`, the metric will be rewritten inline as `customer-a.web01.app.rate` before being sent the downstream destinations.
 
-![ScreenShot](https://raw.githubusercontent.com/jamiealquiza/catpics/master/polymur-proxy-gateway.png)
+The HTTPS listener is optional and will only be initialized if both the `-cert` and `-key` parameters are specified.
+
+Polymur-gateway checks for x-forwarded-for headers and if present, will use the xff IP for logging purposes (example: with Polymur-gateway configured behind and AWS ELB, the exit IP of the connecting Polymur-proxy will automatically be used in logging references rather than the ELB IP).
 
 The Polymur-gateway API key service is backed with Consul's KV store and references KV pairs under the `/polymur/gateway/keys/` namespace. Keys are fetched on startup and synced every 30s to an in-memory cache. In the case that Consul becomes unreachable, the local key cache is simply not updated. 
 
@@ -43,7 +45,7 @@ Usage of ./polymur-gateway:
   -key-prefix
       If enabled, prepends all metrics with the origin polymur-proxy API key's name
   -listen-addr string
-        Polymur-gateway listen address (default "0.0.0.0:443")
+        Polymur-gateway listen address (default "0.0.0.0")
   -metrics-flush int
         Graphite flush interval for runtime metrics (0 is disabled)
   -queue-cap int
@@ -55,7 +57,7 @@ Usage of ./polymur-gateway:
 # Example Test Setup
 
 ### Generate cert/keys
-Polymur-gateway currently uses a simple cert/key setup with clients distributed to connecting polymur-proxy instances. Generate test keys:
+Polymur-gateway optionally supports HTTPS. Generate test keys:
 <pre>
 $ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout key.pem -out cert.pem
 </pre>
@@ -88,6 +90,8 @@ Successfully registered test-key with key 19d2d0f0130a9c9a6f97bdb0
 $ ./polymur-gateway -key="/path/to/key.pem" -cert="/path/to/cert.pem" -console-out
 2016/07/29 14:16:13 ::: Polymur-gatway :::
 2016/07/29 14:16:13 Running API key sync
+2016/07/29 14:16:13 HTTP listening on 0.0.0.0:80
+2016/07/29 14:16:13 HTTPS listening on 0.0.0.0:443
 2016/07/29 14:16:13 API started: localhost:2030
 2016/07/29 14:16:13 Runstats started: localhost:2020
 2016/07/29 14:16:13 API keys refreshed: 1 new, 0 removed
