@@ -2,6 +2,8 @@
 
 See [Polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) and [Polymur-gateway](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-gateway) services for offsite metrics forwarding over HTTPS.
 
+Helper blog post: [Building Polymur: a tool for global Graphite-compatible metrics ingestion](https://grey-boundary.io/building-polymur/)
+
 ### Overview
 
 Polymur is a service that accepts Graphite plaintext protocol metrics (LF delimited messages) from tools like Collectd or Statsd, and either mirrors (broadcast) or hash routes* the output to one or more destinations - including more Polymur instances, native Graphite carbon-cache instances, and other Graphite protocol compatible services (such as InfluxDB). Polymur is efficient at terminating many thousands of connections and provides in-line buffering, per-destination flow control, runtime destination manipulation ("Let's mirror all our production metrics to x.x.x.x"), and failover redistribution (in hash-routing mode: if node C fails, redistribute in-flight metrics for this destination to nodes A and B).
