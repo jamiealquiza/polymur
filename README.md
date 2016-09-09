@@ -2,7 +2,9 @@
 
 See [Polymur-proxy](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-proxy) and [Polymur-gateway](https://github.com/jamiealquiza/polymur/tree/master/cmd/polymur-gateway) services for offsite metrics forwarding over HTTPS.
 
-Helper blog post: [Building Polymur: a tool for global Graphite-compatible metrics ingestion](https://grey-boundary.io/building-polymur/)
+Helper blog post: [Building Polymur: a tool for global Graphite-compatible metrics ingestion](https://grey-boundary.io/building-polymur/).
+
+Found on [Tools That Work With Graphite](http://graphite.readthedocs.io/en/latest/tools.html).
 
 ### Overview
 
