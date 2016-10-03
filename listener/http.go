@@ -1,3 +1,5 @@
+// Package listener handles the ingestion for polymur
+//
 // The MIT License (MIT)
 //
 // Copyright (c) 2016 Jamie Alquiza
@@ -24,8 +26,11 @@ package listener
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -33,51 +38,99 @@ import (
 	"github.com/jamiealquiza/polymur/statstracker"
 )
 
-type HttpListenerConfig struct {
-	Addr          string
-	IncomingQueue chan []*string
-	Cert          string
-	Key           string
-	KeyPrefix     bool
-	Stats         *statstracker.Stats
-	Keys          *keysync.ApiKeys
+// HTTPListenerConfig hold configuration for the HTTP listener
+type HTTPListenerConfig struct {
+	Addr                  string
+	Port                  string
+	IncomingQueue         chan []*string
+	CA                    string
+	Cert                  string
+	Key                   string
+	KeyPrefix             bool
+	UseCertAuthentication bool
+	Stats                 *statstracker.Stats
+	Keys                  *keysync.ApiKeys
 }
 
-// HttpListener accepts connections from a polymur-proxy
+// HTTPListener accepts connections from a polymur-proxy
 // client. Upon a successful /ping client API key validation,
 // batches of compressed messages are passed to /ingest handler.
-func HttpListener(config *HttpListenerConfig) {
+func HTTPListener(config *HTTPListenerConfig) {
 	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config) })
-	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) { ping(w, req, config.Keys) })
+	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) { ping(w, req, config) })
 
 	if config.Cert != "" && config.Key != "" {
 		go func() {
-			log.Printf("HTTPS listening on %s:443\n", config.Addr)
-			err := http.ListenAndServeTLS(config.Addr+":443", config.Cert, config.Key, nil)
+			var caPool *x509.CertPool
+
+			if config.CA != "" {
+				cert, err := ioutil.ReadFile(config.CA)
+				if err != nil {
+					log.Fatal(err)
+					return
+				}
+
+				// Use client cert.
+				caPool = x509.NewCertPool()
+				ok := caPool.AppendCertsFromPEM(cert)
+				if !ok {
+					log.Fatal("Error parsing certificate")
+				}
+
+				tlsConfig := &tls.Config{
+					// Reject any TLS certificate that cannot be validated
+					ClientAuth: tls.RequireAndVerifyClientCert,
+					// Ensure that we only use our "CA" to validate certificates
+					ClientCAs: caPool,
+					// PFS because we can but this will reject client with RSA certificates
+					CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256},
+					// Force it server side
+					PreferServerCipherSuites: true,
+					// TLS 1.2 because we can
+					MinVersion: tls.VersionTLS12,
+				}
+
+				tlsConfig.BuildNameToCertificate()
+
+				httpServer := &http.Server{
+					Addr:      fmt.Sprint(config.Addr, ":", config.Port),
+					TLSConfig: tlsConfig,
+				}
+
+				err = httpServer.ListenAndServeTLS(config.Cert, config.Key)
+				if err != nil {
+					log.Fatalf("ListenAndServe: %s\n", err)
+				}
+
+			} else {
+
+				log.Printf("HTTPS listening on %s\n", fmt.Sprint(config.Addr, ":", config.Port))
+				err := http.ListenAndServeTLS(fmt.Sprint(config.Addr, ":", config.Port), config.Cert, config.Key, nil)
+				if err != nil {
+					log.Fatalf("ListenAndServeTLS: %s\n", err)
+				}
+
+			}
+		}()
+
+	} else {
+		go func() {
+			log.Printf("HTTP listening on %s\n", fmt.Sprint(config.Addr, ":", config.Port))
+			err := http.ListenAndServe(fmt.Sprint(config.Addr, ":", config.Port), nil)
 			if err != nil {
 				log.Fatalf("ListenAndServe: %s\n", err)
 			}
 		}()
-
 	}
-	go func() {
-		log.Printf("HTTP listening on %s:80\n", config.Addr)
-		err := http.ListenAndServe(config.Addr+":80", nil)
-		if err != nil {
-			log.Fatalf("ListenAndServe: %s\n", err)
-		}
-	}()
 }
 
 // ingest is a handler that accepts a batch of compressed data points.
 // Data points arive as a concatenated string with newline delimition.
 // Each batch is broken up and populated into a []*string and pushed
 // to the IncomingQueue for downstream destination writing.
-func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig) {
-
-	// Validate key on every batch.
-	// May or may not be a good idea.
-	requestKey := req.Header.Get("X-Polymur-Key")
+func ingest(w http.ResponseWriter, req *http.Request, config *HTTPListenerConfig) {
+	var requestKey, keyName string
+	var valid bool
 
 	var client string
 	xff := req.Header.Get("x-forwarded-for")
@@ -87,17 +140,23 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 		client = req.RemoteAddr
 	}
 
-	keyName, valid := validateKey(requestKey, config.Keys)
-	if !valid {
-		log.Printf("[client %s] %s is not a valid key\n",
-			client, requestKey)
+	if !config.UseCertAuthentication {
+		requestKey = req.Header.Get("X-Polymur-Key")
 
-		resp := fmt.Sprintf("invalid key")
-		req.Close = true
-		w.WriteHeader(http.StatusUnauthorized)
-		io.WriteString(w, resp)
+		keyName, valid = validateKey(requestKey, config.Keys)
+		if !valid {
+			log.Printf("[client %s] %s is not a valid key\n",
+				client, requestKey)
 
-		return
+			resp := fmt.Sprintf("invalid key")
+			req.Close = true
+			w.WriteHeader(http.StatusUnauthorized)
+			io.WriteString(w, resp)
+
+			return
+		}
+	} else {
+		keyName = req.TLS.PeerCertificates[0].Subject.CommonName
 	}
 
 	io.WriteString(w, "Batch Received\n")
@@ -140,10 +199,7 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 }
 
 // ping validates a connecting polymur-proxy's API key.
-func ping(w http.ResponseWriter, req *http.Request, keys *keysync.ApiKeys) {
-	requestKey := req.Header.Get("X-Polymur-Key")
-	keyName, valid := validateKey(requestKey, keys)
-
+func ping(w http.ResponseWriter, req *http.Request, config *HTTPListenerConfig) {
 	var client string
 	xff := req.Header.Get("x-forwarded-for")
 	if xff != "" {
@@ -152,19 +208,29 @@ func ping(w http.ResponseWriter, req *http.Request, keys *keysync.ApiKeys) {
 		client = req.RemoteAddr
 	}
 
-	if valid {
-		log.Printf("[client %s] key for %s is valid\n",
-			client, keyName)
+	if config.UseCertAuthentication {
+		log.Println("TLS Certificate authentication suceeded for",
+			req.TLS.PeerCertificates[0].Subject.CommonName)
 		io.WriteString(w, "key is valid\n")
 	} else {
-		log.Printf("[client %s] %s is not a valid key\n",
-			client, requestKey)
+		requestKey := req.Header.Get("X-Polymur-Key")
+		keyName, valid := validateKey(requestKey, config.Keys)
 
-		resp := fmt.Sprintf("invalid key")
-		req.Close = true
-		w.WriteHeader(http.StatusUnauthorized)
-		io.WriteString(w, resp)
+		if valid {
+			log.Printf("[client %s] key for %s is valid\n",
+				client, keyName)
+			io.WriteString(w, "key is valid\n")
+		} else {
+			log.Printf("[client %s] %s is not a valid key\n",
+				client, requestKey)
+
+			resp := fmt.Sprintf("invalid key")
+			req.Close = true
+			w.WriteHeader(http.StatusUnauthorized)
+			io.WriteString(w, resp)
+		}
 	}
+
 }
 
 // validateKey looks up if a key is registered in Consul
@@ -176,7 +242,7 @@ func validateKey(k string, keys *keysync.ApiKeys) (string, bool) {
 
 	if valid {
 		return name, true
-	} else {
-		return "", false
 	}
+	return "", false
+
 }

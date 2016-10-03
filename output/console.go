@@ -1,3 +1,5 @@
+// Package output handles sending stats to a polymur-gateway
+//
 // The MIT License (MIT)
 //
 // Copyright (c) 2016 Jamie Alquiza
@@ -19,13 +21,14 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-package output 
+package output
 
 import (
 	"fmt"
 )
 
-func OutputConsole(q <-chan []*string) {
+// Console outputs all stats to the console
+func Console(q <-chan []*string) {
 batch:
 	for m := range q {
 		for _, l := range m {

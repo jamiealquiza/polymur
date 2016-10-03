@@ -39,25 +39,29 @@ import (
 
 var (
 	options struct {
-		addr         string
-		apiAddr      string
-		statAddr     string
-		queuecap     int
-		console      bool
-		destinations string
-		metricsFlush int
-		distribution string
-		cert         string
-		key          string
-		devMode      bool
-		keyPrefix    bool
+		addr                  string
+		port                  string
+		apiAddr               string
+		statAddr              string
+		queuecap              int
+		console               bool
+		destinations          string
+		metricsFlush          int
+		distribution          string
+		cert                  string
+		key                   string
+		useCertAuthentication bool
+		ca                    string
+		devMode               bool
+		keyPrefix             bool
 	}
 
-	sig_chan = make(chan os.Signal)
+	sigChan = make(chan os.Signal)
 )
 
 func init() {
 	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0", "Polymur-gateway listen address")
+	flag.StringVar(&options.port, "listen-port", "443", "Polymur-gateway listen port")
 	flag.StringVar(&options.apiAddr, "api-addr", "localhost:2030", "API listen address")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
 	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity per destination")
@@ -67,6 +71,8 @@ func init() {
 	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, hash-route")
 	flag.StringVar(&options.cert, "cert", "", "TLS Certificate")
 	flag.StringVar(&options.key, "key", "", "TLS Key")
+	flag.StringVar(&options.ca, "ca-cert", "", "CA Cert (for certificate-based authentication)")
+	flag.BoolVar(&options.useCertAuthentication, "use-cert-auth", false, "Use TLS certificate-based authentication in lieu of API keys")
 	flag.BoolVar(&options.devMode, "dev-mode", false, "Dev mode: disables Consul API key store; uses '123'")
 	flag.BoolVar(&options.keyPrefix, "key-prefix", false, "If enabled, prepends all metrics with the origin polymur-proxy API key's name")
 	flag.Parse()
@@ -74,14 +80,20 @@ func init() {
 
 // Handles signal events.
 func runControl() {
-	signal.Notify(sig_chan, syscall.SIGINT)
-	<-sig_chan
+	signal.Notify(sigChan, syscall.SIGINT)
+	<-sigChan
 	log.Printf("Shutting down")
 	os.Exit(0)
 }
 
 func main() {
+	var apiKeys *keysync.ApiKeys
+
 	log.Println("::: Polymur-gateway :::")
+
+	if options.useCertAuthentication && options.cert == "" {
+		log.Fatalln("Cannot use certificate-based authentication without supplying a cert via -cert")
+	}
 
 	ready := make(chan bool, 1)
 
@@ -91,12 +103,12 @@ func main() {
 
 	// Output writer.
 	if options.console {
-		go output.OutputConsole(incomingQueue)
+		go output.Console(incomingQueue)
 		ready <- true
 	} else {
-		go output.TcpWriter(
+		go output.TCPWriter(
 			pool,
-			&output.TcpWriterConfig{
+			&output.TCPWriterConfig{
 				Destinations:  options.destinations,
 				Distribution:  options.distribution,
 				IncomingQueue: incomingQueue,
@@ -111,23 +123,29 @@ func main() {
 	sentCntr := &statstracker.Stats{}
 	go statstracker.StatsTracker(pool, sentCntr)
 
-	// API key sync service.
-	apiKeys := keysync.NewApiKeys()
-	if !options.devMode {
-		go keysync.Run(apiKeys)
-	} else {
-		apiKeys.Keys["123"] = "dev"
+	// Only start the key sync service if we're using key-based authentication
+	if !options.useCertAuthentication {
+		// API key sync service.
+		apiKeys = keysync.NewApiKeys()
+		if !options.devMode {
+			go keysync.Run(apiKeys)
+		} else {
+			apiKeys.Keys["123"] = "dev"
+		}
 	}
 
 	// HTTP Listener.
-	go listener.HttpListener(&listener.HttpListenerConfig{
+	go listener.HTTPListener(&listener.HTTPListenerConfig{
 		Addr:          options.addr,
+		Port:          options.port,
 		IncomingQueue: incomingQueue,
 		Cert:          options.cert,
-		KeyPrefix:     options.keyPrefix,
-		Key:           options.key,
-		Stats:         sentCntr,
-		Keys:          apiKeys,
+		CA:            options.ca,
+		UseCertAuthentication: options.useCertAuthentication,
+		KeyPrefix:             options.keyPrefix,
+		Key:                   options.key,
+		Stats:                 sentCntr,
+		Keys:                  apiKeys,
 	})
 
 	// API listener.

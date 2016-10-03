@@ -1,3 +1,5 @@
+// Package output handles sending stats to a polymur-gateway
+//
 // The MIT License (MIT)
 //
 // Copyright (c) 2016 Jamie Alquiza
@@ -32,14 +34,16 @@ import (
 	"github.com/jamiealquiza/polymur/pool"
 )
 
-type TcpWriterConfig struct {
+// TCPWriterConfig holds configuration for TCP output
+type TCPWriterConfig struct {
 	Destinations  string
 	Distribution  string
 	IncomingQueue chan []*string
 	QueueCap      int
 }
 
-func TcpWriter(p *pool.Pool, config *TcpWriterConfig, ready chan bool) {
+// TCPWriter sends stats to polymur-gateway over TCP
+func TCPWriter(p *pool.Pool, config *TCPWriterConfig, ready chan bool) {
 	p.Lock()
 	p.Distribution = config.Distribution
 	p.QueueCap = config.QueueCap

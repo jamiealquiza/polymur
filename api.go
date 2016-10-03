@@ -1,3 +1,5 @@
+// Package polymur is the base package for the polymur API and suite of tools
+//
 // The MIT License (MIT)
 //
 // Copyright (c) 2016 Jamie Alquiza
