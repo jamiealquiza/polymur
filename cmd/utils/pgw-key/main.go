@@ -28,8 +28,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/chrissnell/polymur/keysync"
 	"github.com/jamiealquiza/consul/api"
-	"github.com/jamiealquiza/polymur/keysync"
 )
 
 // Commands available.

@@ -31,7 +31,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jamiealquiza/polymur/pool"
+	"github.com/chrissnell/polymur/pool"
 )
 
 // TCPWriterConfig holds configuration for TCP output

@@ -34,8 +34,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/jamiealquiza/polymur/keysync"
-	"github.com/jamiealquiza/polymur/statstracker"
+	"github.com/chrissnell/polymur/keysync"
+	"github.com/chrissnell/polymur/statstracker"
 )
 
 // HTTPListenerConfig hold configuration for the HTTP listener

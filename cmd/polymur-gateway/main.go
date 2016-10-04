@@ -28,13 +28,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jamiealquiza/polymur"
-	"github.com/jamiealquiza/polymur/keysync"
-	"github.com/jamiealquiza/polymur/listener"
-	"github.com/jamiealquiza/polymur/output"
-	"github.com/jamiealquiza/polymur/pool"
-	"github.com/jamiealquiza/polymur/statstracker"
-	"github.com/jamiealquiza/runstats"
+	"github.com/chrissnell/polymur"
+	"github.com/chrissnell/polymur/keysync"
+	"github.com/chrissnell/polymur/listener"
+	"github.com/chrissnell/polymur/output"
+	"github.com/chrissnell/polymur/pool"
+	"github.com/chrissnell/polymur/statstracker"
+	"github.com/chrissnell/polymur/runstats"
 )
 
 var (

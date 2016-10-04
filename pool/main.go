@@ -28,7 +28,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jamiealquiza/polymur/consistenthash"
+	"github.com/chrissnell/polymur/consistenthash"
 )
 
 type Destination struct {

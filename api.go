@@ -31,8 +31,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/jamiealquiza/polymur/output"
-	"github.com/jamiealquiza/polymur/pool"
+	"github.com/chrissnell/polymur/output"
+	"github.com/chrissnell/polymur/pool"
 )
 
 // Available API commands.

@@ -29,7 +29,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/jamiealquiza/polymur/statstracker"
+	"github.com/chrissnell/polymur/statstracker"
 )
 
 // TCPListenerConfig holds configuration for the TCP listener

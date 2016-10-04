@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jamiealquiza/polymur/pool"
+	"github.com/chrissnell/polymur/pool"
 )
 
 type Stats struct {
