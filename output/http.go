@@ -36,7 +36,9 @@ import (
 
 // HTTPWriterConfig holds configuration for the HTTP Writer
 type HTTPWriterConfig struct {
-	Cert                  string
+	CACert                string
+	ClientCert            string
+	ClientKey             string
 	UseCertAuthentication bool
 	APIKey                string
 	Gateway               string
@@ -57,22 +59,37 @@ type GwResp struct {
 // by hitting the /ping path with a valid client API key registered
 // with the polymur-gateway.
 func HTTPWriter(config *HTTPWriterConfig, ready chan bool) {
+	var roots *x509.CertPool
 
-	if config.Cert != "" {
-		cert, err := ioutil.ReadFile(config.Cert)
+	if config.ClientCert != "" {
+		// Load our TLS key pair to use for authentication
+		clientCert, err := tls.LoadX509KeyPair(config.ClientCert, config.ClientKey)
 		if err != nil {
-			log.Fatal(err)
-			return
+			log.Fatalln("Unable to load client cert:", err)
 		}
 
-		// Use client cert.
-		roots := x509.NewCertPool()
-		ok := roots.AppendCertsFromPEM(cert)
-		if !ok {
-			log.Fatal("Error parsing certificate")
+		if config.CACert != "" {
+			caCert, err := ioutil.ReadFile(config.CACert)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+
+			// Add the CA cert into a pool
+			roots = x509.NewCertPool()
+			ok := roots.AppendCertsFromPEM(caCert)
+			if !ok {
+				log.Fatal("Error parsing CA certificate")
+			}
+
 		}
 
-		tlsConf := &tls.Config{RootCAs: roots}
+		// Lock our
+		tlsConf := &tls.Config{
+			RootCAs:      roots,
+			Certificates: []tls.Certificate{clientCert},
+		}
+
 		tr := &http.Transport{TLSClientConfig: tlsConf}
 		config.client = &http.Client{Transport: tr}
 	} else {
