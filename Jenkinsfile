@@ -25,9 +25,11 @@ node {
   unstash "binary-polymur-proxy"
 
   version = currentVersion()
-  hoister.registry = registry
-  hoister.imageName = "polymur"
-  hoister.buildAndPush version
+  usingDocker {
+     hoister.registry = registry
+     hoister.imageName = "polymur"
+     hoister.buildAndPush version
+  }
 
   stagehandPublish("polymur", version)
 }
