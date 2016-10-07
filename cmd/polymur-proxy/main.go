@@ -22,7 +22,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -30,8 +29,9 @@ import (
 
 	"github.com/chrissnell/polymur/listener"
 	"github.com/chrissnell/polymur/output"
-	"github.com/chrissnell/polymur/statstracker"
 	"github.com/chrissnell/polymur/runstats"
+	"github.com/chrissnell/polymur/statstracker"
+	"github.com/namsral/flag"
 )
 
 var (
