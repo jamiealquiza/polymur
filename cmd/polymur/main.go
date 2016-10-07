@@ -22,18 +22,18 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/jamiealquiza/polymur"
-	"github.com/jamiealquiza/polymur/listener"
-	"github.com/jamiealquiza/polymur/output"
-	"github.com/jamiealquiza/polymur/pool"
-	"github.com/jamiealquiza/polymur/statstracker"
-	"github.com/jamiealquiza/runstats"
+	"github.com/chrissnell/polymur"
+	"github.com/chrissnell/polymur/listener"
+	"github.com/chrissnell/polymur/output"
+	"github.com/chrissnell/polymur/pool"
+	"github.com/chrissnell/polymur/runstats"
+	"github.com/chrissnell/polymur/statstracker"
+	"github.com/namsral/flag"
 )
 
 var (
@@ -48,7 +48,7 @@ var (
 		distribution string
 	}
 
-	sig_chan = make(chan os.Signal)
+	sigChan = make(chan os.Signal)
 )
 
 func init() {
@@ -65,8 +65,8 @@ func init() {
 
 // Handles signal events.
 func runControl() {
-	signal.Notify(sig_chan, syscall.SIGINT)
-	<-sig_chan
+	signal.Notify(sigChan, syscall.SIGINT)
+	<-sigChan
 	log.Printf("Shutting down")
 	os.Exit(0)
 }
@@ -81,12 +81,12 @@ func main() {
 
 	// Output writer.
 	if options.console {
-		go output.OutputConsole(incomingQueue)
+		go output.Console(incomingQueue)
 		ready <- true
 	} else {
-		go output.TcpWriter(
+		go output.TCPWriter(
 			pool,
-			&output.TcpWriterConfig{
+			&output.TCPWriterConfig{
 				Destinations:  options.destinations,
 				Distribution:  options.distribution,
 				IncomingQueue: incomingQueue,
@@ -102,7 +102,7 @@ func main() {
 	go statstracker.StatsTracker(pool, sentCntr)
 
 	// TCP Listener.
-	go listener.TcpListener(&listener.TcpListenerConfig{
+	go listener.TCPListener(&listener.TCPListenerConfig{
 		Addr:          options.addr,
 		IncomingQueue: incomingQueue,
 		FlushTimeout:  5,

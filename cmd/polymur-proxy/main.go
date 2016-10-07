@@ -22,37 +22,43 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/jamiealquiza/polymur/listener"
-	"github.com/jamiealquiza/polymur/output"
-	"github.com/jamiealquiza/polymur/statstracker"
-	"github.com/jamiealquiza/runstats"
+	"github.com/chrissnell/polymur/listener"
+	"github.com/chrissnell/polymur/output"
+	"github.com/chrissnell/polymur/runstats"
+	"github.com/chrissnell/polymur/statstracker"
+	"github.com/namsral/flag"
 )
 
 var (
 	options struct {
-		cert         string
-		apiKey       string
-		gateway      string
-		addr         string
-		statAddr     string
-		queuecap     int
-		workers      int
-		console      bool
-		metricsFlush int
+		clientCert            string
+		clientKey             string
+		CACert                string
+		useCertAuthentication bool
+		APIKey                string
+		gateway               string
+		addr                  string
+		statAddr              string
+		queuecap              int
+		workers               int
+		console               bool
+		metricsFlush          int
 	}
 
-	sig_chan = make(chan os.Signal)
+	sigChan = make(chan os.Signal)
 )
 
 func init() {
-	flag.StringVar(&options.cert, "cert", "", "TLS Certificate")
-	flag.StringVar(&options.apiKey, "api-key", "", "polymur gateway API key")
+	flag.StringVar(&options.clientCert, "client-cert", "", "Client TLS Certificate")
+	flag.StringVar(&options.clientKey, "client-key", "", "Client TLS Private Key")
+	flag.StringVar(&options.CACert, "ca-cert", "", "CA Root Certificate - if server is using a cert that wasn't signed by a root CA that we recognize automatically")
+	flag.BoolVar(&options.useCertAuthentication, "use-cert-auth", false, "Use TLS certificate-based authentication in lieu of API keys")
+	flag.StringVar(&options.APIKey, "api-key", "", "polymur gateway API key")
 	flag.StringVar(&options.gateway, "gateway", "", "polymur gateway address")
 	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0:2003", "Polymur-proxy listen address")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
@@ -65,8 +71,8 @@ func init() {
 
 // Handles signal events.
 func runControl() {
-	signal.Notify(sig_chan, syscall.SIGINT)
-	<-sig_chan
+	signal.Notify(sigChan, syscall.SIGINT)
+	<-sigChan
 	log.Printf("Shutting down")
 	os.Exit(0)
 }
@@ -77,18 +83,27 @@ func main() {
 
 	incomingQueue := make(chan []*string, options.queuecap)
 
+	// If we're going to use certificate auth to talk to the server, we have to be configured with
+	// a client certificate and key pair.
+	if options.useCertAuthentication && (options.clientCert == "" || options.clientKey == "") {
+		log.Fatalln("Cannot use certificate-based authentication without supplying a cert via -cert")
+	}
+
 	// Output writer.
 	if options.console {
-		go output.OutputConsole(incomingQueue)
+		go output.Console(incomingQueue)
 		ready <- true
 	} else {
-		go output.HttpWriter(
-			&output.HttpWriterConfig{
-				Cert:          options.cert,
-				ApiKey:        options.apiKey,
-				Gateway:       options.gateway,
-				Workers:       options.workers,
-				IncomingQueue: incomingQueue,
+		go output.HTTPWriter(
+			&output.HTTPWriterConfig{
+				ClientCert:            options.clientCert,
+				ClientKey:             options.clientKey,
+				CACert:                options.CACert,
+				UseCertAuthentication: options.useCertAuthentication,
+				APIKey:                options.APIKey,
+				Gateway:               options.gateway,
+				Workers:               options.workers,
+				IncomingQueue:         incomingQueue,
 			},
 			ready)
 	}
@@ -100,7 +115,7 @@ func main() {
 	go statstracker.StatsTracker(nil, sentCntr)
 
 	// TCP Listener.
-	go listener.TcpListener(&listener.TcpListenerConfig{
+	go listener.TCPListener(&listener.TCPListenerConfig{
 		Addr:          options.addr,
 		IncomingQueue: incomingQueue,
 		FlushTimeout:  15,

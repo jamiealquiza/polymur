@@ -1,3 +1,5 @@
+// Package polymur is the base package for the polymur API and suite of tools
+//
 // The MIT License (MIT)
 //
 // Copyright (c) 2016 Jamie Alquiza
@@ -29,8 +31,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/jamiealquiza/polymur/output"
-	"github.com/jamiealquiza/polymur/pool"
+	"github.com/chrissnell/polymur/output"
+	"github.com/chrissnell/polymur/pool"
 )
 
 // Available API commands.

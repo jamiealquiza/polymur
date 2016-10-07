@@ -1,3 +1,5 @@
+// Package output handles sending stats to a polymur-gateway
+//
 // The MIT License (MIT)
 //
 // Copyright (c) 2016 Jamie Alquiza
@@ -32,13 +34,17 @@ import (
 	"net/http"
 )
 
-type HttpWriterConfig struct {
-	Cert          string
-	ApiKey        string
-	Gateway       string
-	IncomingQueue chan []*string
-	Workers       int
-	client        *http.Client
+// HTTPWriterConfig holds configuration for the HTTP Writer
+type HTTPWriterConfig struct {
+	CACert                string
+	ClientCert            string
+	ClientKey             string
+	UseCertAuthentication bool
+	APIKey                string
+	Gateway               string
+	IncomingQueue         chan []*string
+	Workers               int
+	client                *http.Client
 }
 
 // GwResp captures the response string
@@ -48,27 +54,42 @@ type GwResp struct {
 	Code   int
 }
 
-// HttpWriter writes compressesed message batches over HTTPS
+// HTTPWriter writes compressesed message batches over HTTPS
 // to a polymur-gateway instance. Initial connection is OK'd
 // by hitting the /ping path with a valid client API key registered
 // with the polymur-gateway.
-func HttpWriter(config *HttpWriterConfig, ready chan bool) {
+func HTTPWriter(config *HTTPWriterConfig, ready chan bool) {
+	var roots *x509.CertPool
 
-	if config.Cert != "" {
-		cert, err := ioutil.ReadFile(config.Cert)
+	if config.ClientCert != "" {
+		// Load our TLS key pair to use for authentication
+		clientCert, err := tls.LoadX509KeyPair(config.ClientCert, config.ClientKey)
 		if err != nil {
-			log.Fatal(err)
-			return
+			log.Fatalln("Unable to load client cert:", err)
 		}
 
-		// Use client cert.
-		roots := x509.NewCertPool()
-		ok := roots.AppendCertsFromPEM(cert)
-		if !ok {
-			log.Fatal("Error parsing certificate")
+		if config.CACert != "" {
+			caCert, err := ioutil.ReadFile(config.CACert)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+
+			// Add the CA cert into a pool
+			roots = x509.NewCertPool()
+			ok := roots.AppendCertsFromPEM(caCert)
+			if !ok {
+				log.Fatal("Error parsing CA certificate")
+			}
+
 		}
 
-		tlsConf := &tls.Config{RootCAs: roots}
+		// Lock our
+		tlsConf := &tls.Config{
+			RootCAs:      roots,
+			Certificates: []tls.Certificate{clientCert},
+		}
+
 		tr := &http.Transport{TLSClientConfig: tlsConf}
 		config.client = &http.Client{Transport: tr}
 	} else {
@@ -99,36 +120,39 @@ func HttpWriter(config *HttpWriterConfig, ready chan bool) {
 
 // writeStream reads data point batches from the IncomingQueue,
 // compresses and writes to the downstream polymur-gateway.
-func writeStream(config *HttpWriterConfig, workerId int) {
-	log.Printf("HTTP writer #%d started\n", workerId)
+func writeStream(config *HTTPWriterConfig, workerID int) {
+	log.Printf("HTTP writer #%d started\n", workerID)
 
 	for m := range config.IncomingQueue {
 		data, count := packDataPoints(m)
 
 		log.Printf("[worker #%d] sending batch (%d data points)\n",
-			workerId,
+			workerID,
 			count)
 
 		response, err := apiPost(config, "/ingest", data)
 		if err != nil {
 			// TODO need failure / retry logic.
-			log.Printf("[worker #%d] [gateway]: %s", workerId, err)
+			log.Printf("[worker #%d] [gateway]: %s", workerID, err)
 			continue
 		}
 
-		log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
+		log.Printf("[worker #%d] [gateway] %s", workerID, response.String)
 	}
 }
 
 // apiPost is a convenience wrapper for submitting requests to
 // a polymur-gateway and returning GwResp's.
-func apiPost(config *HttpWriterConfig, path string, postData io.Reader) (*GwResp, error) {
+func apiPost(config *HTTPWriterConfig, path string, postData io.Reader) (*GwResp, error) {
 	req, err := http.NewRequest("POST", config.Gateway+path, postData)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("X-polymur-key", config.ApiKey)
+	if !config.UseCertAuthentication {
+		req.Header.Add("X-polymur-key", config.APIKey)
+	}
+
 	resp, err := config.client.Do(req)
 	if err != nil {
 		return nil, err
