@@ -39,18 +39,19 @@ import (
 
 var (
 	options struct {
-		addr         string
-		apiAddr      string
-		statAddr     string
-		queuecap     int
-		console      bool
-		destinations string
-		metricsFlush int
-		distribution string
-		cert         string
-		key          string
-		devMode      bool
-		keyPrefix    bool
+		addr             string
+		apiAddr          string
+		statAddr         string
+		incomingQueuecap int
+		outgoingQueuecap int
+		console          bool
+		destinations     string
+		metricsFlush     int
+		distribution     string
+		cert             string
+		key              string
+		devMode          bool
+		keyPrefix        bool
 	}
 
 	sig_chan = make(chan os.Signal)
@@ -60,7 +61,8 @@ func init() {
 	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0", "Polymur-gateway listen address")
 	flag.StringVar(&options.apiAddr, "api-addr", "localhost:2030", "API listen address")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
-	flag.IntVar(&options.queuecap, "queue-cap", 4096, "In-flight message queue capacity per destination")
+	flag.IntVar(&options.outgoingQueuecap, "outgoing-queue-cap", 4096, "In-flight message queue capacity per destination")
+	flag.IntVar(&options.incomingQueuecap, "incoming-queue-cap", 32768, "In-flight incoming message queue capacity")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
@@ -85,7 +87,7 @@ func main() {
 
 	ready := make(chan bool, 1)
 
-	incomingQueue := make(chan []*string, 32768)
+	incomingQueue := make(chan []*string, options.incomingQueuecap)
 
 	pool := pool.NewPool()
 
@@ -100,7 +102,7 @@ func main() {
 				Destinations:  options.destinations,
 				Distribution:  options.distribution,
 				IncomingQueue: incomingQueue,
-				QueueCap:      options.queuecap,
+				QueueCap:      options.outgoingQueuecap,
 			},
 			ready)
 	}
@@ -135,7 +137,7 @@ func main() {
 
 	// Polymur stats writer.
 	if options.metricsFlush > 0 {
-		go runstats.WriteGraphite(incomingQueue, options.metricsFlush, sentCntr)
+		go runstats.WriteGraphiteWithBackendMetrics(pool, incomingQueue, options.incomingQueuecap, options.metricsFlush, sentCntr)
 	}
 
 	// Runtime stats listener.
