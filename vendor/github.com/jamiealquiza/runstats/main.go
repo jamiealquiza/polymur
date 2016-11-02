@@ -31,6 +31,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/jamiealquiza/polymur/pool"
 )
 
 var (
@@ -59,6 +61,42 @@ func WriteGraphite(c chan []*string, i int, s Statser) {
 		rate := fmt.Sprintf("%s.polymur.rate %.2f %d", hostname, s.GetRate(), ts)
 		metrics = append(metrics, &rate)
 
+		// Drop the metrics into Polymur's
+		// incoming channel.
+		c <- metrics
+	}
+}
+
+// WriteGraphiteWithBackendMetrics takes a pointer to backend pool, incoming queue, incoming queue limit and a statser interface.
+func WriteGraphiteWithBackendMetrics(p *pool.Pool, c chan []*string, ic int, i int, s Statser) {
+	interval := time.Tick(time.Duration(i) * time.Second)
+	hostname, _ := os.Hostname()
+	for {
+		<-interval
+		now := time.Now()
+		ts := int64(now.Unix())
+		metrics := []*string{}
+		stats := buildStats()
+
+		for k, v := range stats["runtime-meminfo"] {
+			value := fmt.Sprintf("%s.polymur.runtime.%s %d %d", hostname, k, v, ts)
+			metrics = append(metrics, &value)
+		}
+
+		rate := fmt.Sprintf("%s.polymur.rate %.2f %d", hostname, s.GetRate(), ts)
+		metrics = append(metrics, &rate)
+
+		incomingQueue := fmt.Sprintf("%s.polymur.incoming-queue.current-size %d %d", hostname, len(c), ts)
+		incomingQueueCap := fmt.Sprintf("%s.polymur.incoming-queue.limit %d %d", hostname, ic, ts)
+		metrics = append(metrics, &incomingQueue, &incomingQueueCap)
+
+		p.Lock()
+		for dest, destQueue := range p.Conns {
+			destQueueSize := fmt.Sprintf("%s.polymur.outgoing-queue.%s.current-size %d %d", hostname, strings.Replace(dest, ".", "_", -1), len(destQueue), ts)
+			destQueueLimit := fmt.Sprintf("%s.polymur.outgoing-queue.%s.limit %d %d", hostname, strings.Replace(dest, ".", "_", -1), p.QueueCap, ts)
+			metrics = append(metrics, &destQueueSize, &destQueueLimit)
+		}
+		p.Unlock()
 		// Drop the metrics into Polymur's
 		// incoming channel.
 		c <- metrics
