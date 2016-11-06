@@ -123,6 +123,7 @@ func main() {
 		go keysync.Run(apiKeys)
 	} else {
 		apiKeys.Keys["123"] = "dev"
+		log.Println("Running in dev-mode: API-key set to '123'")
 	}
 
 	// HTTP Listener.
