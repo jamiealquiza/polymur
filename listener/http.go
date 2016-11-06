@@ -35,6 +35,8 @@ import (
 
 type HttpListenerConfig struct {
 	Addr          string
+	HttpPort      string
+	HttpsPort     string
 	IncomingQueue chan []*string
 	Cert          string
 	Key           string
@@ -50,19 +52,34 @@ func HttpListener(config *HttpListenerConfig) {
 	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config) })
 	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) { ping(w, req, config.Keys) })
 
+	var httpsPort string
+	if config.HttpsPort != "" {
+		httpsPort = config.HttpsPort
+	} else {
+		httpsPort = "443"
+	}
+
 	if config.Cert != "" && config.Key != "" {
 		go func() {
-			log.Printf("HTTPS listening on %s:443\n", config.Addr)
-			err := http.ListenAndServeTLS(config.Addr+":443", config.Cert, config.Key, nil)
+			log.Printf("HTTPS listening on %s:%s\n", config.Addr, httpsPort)
+			err := http.ListenAndServeTLS(config.Addr+":"+httpsPort, config.Cert, config.Key, nil)
 			if err != nil {
 				log.Fatalf("ListenAndServe: %s\n", err)
 			}
 		}()
 
 	}
+
+	var httpPort string
+	if config.HttpPort != "" {
+		httpPort = config.HttpPort
+	} else {
+		httpPort = "80"
+	}
+
 	go func() {
-		log.Printf("HTTP listening on %s:80\n", config.Addr)
-		err := http.ListenAndServe(config.Addr+":80", nil)
+		log.Printf("HTTP listening on %s:%s\n", config.Addr, httpPort)
+		err := http.ListenAndServe(config.Addr+":"+httpPort, nil)
 		if err != nil {
 			log.Fatalf("ListenAndServe: %s\n", err)
 		}

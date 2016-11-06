@@ -41,6 +41,8 @@ var (
 	options struct {
 		addr             string
 		apiAddr          string
+		httpPort         string
+		httpsPort        string
 		statAddr         string
 		incomingQueuecap int
 		outgoingQueuecap int
@@ -59,6 +61,8 @@ var (
 
 func init() {
 	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0", "Polymur-gateway listen address")
+	flag.StringVar(&options.httpPort, "listen-http-port", "", "Polymur-gateway listen port (http)")
+	flag.StringVar(&options.httpsPort, "listen-https-port", "", "Polymur-gateway listen port (https)")
 	flag.StringVar(&options.apiAddr, "api-addr", "localhost:2030", "API listen address")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
 	flag.IntVar(&options.outgoingQueuecap, "outgoing-queue-cap", 4096, "In-flight message queue capacity per destination")
@@ -124,6 +128,8 @@ func main() {
 	// HTTP Listener.
 	go listener.HttpListener(&listener.HttpListenerConfig{
 		Addr:          options.addr,
+		HttpPort:      options.httpPort,
+		HttpsPort:     options.httpsPort,
 		IncomingQueue: incomingQueue,
 		Cert:          options.cert,
 		KeyPrefix:     options.keyPrefix,
