@@ -34,7 +34,7 @@ import (
 // mechanism that replicates the placement algorithm
 // used in the Graphite project carbon-cache daemon.
 type HashRing struct {
-	sync.Mutex
+	sync.RWMutex
 	Vnodes int
 	nodes  nodeList
 }
@@ -112,7 +112,7 @@ func (h *HashRing) GetNode(k string) (string, error) {
 		return "", errors.New("Hash ring is empty")
 	}
 
-	h.Lock()
+	h.RLock()
 
 	// Hash the reference key.
 	hk := getHashKey(k)
@@ -122,7 +122,7 @@ func (h *HashRing) GetNode(k string) (string, error) {
 
 	node := h.nodes[i].nodeName
 
-	h.Unlock()
+	h.RUnlock()
 
 	return node, nil
 }
