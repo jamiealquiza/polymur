@@ -42,7 +42,7 @@ type Destination struct {
 // Pool is a unit that holds all the destinations, their connection
 // state, queues and misc.
 type Pool struct {
-	sync.Mutex
+	sync.RWMutex
 	Ring               *consistenthash.HashRing
 	Conns              map[string]chan *string
 	Registered         map[string]time.Time
@@ -73,6 +73,8 @@ func NewPool() *Pool {
 // broadcast takes a batch of messages and
 // sends a copy of each to all destinations outbound queue.
 func (p *Pool) broadcast(messages []*string) {
+	p.RLock()
+	defer p.RUnlock()
 	// For each message in the batch,
 	for _, m := range messages {
 		if m == nil {
@@ -95,6 +97,8 @@ func (p *Pool) broadcast(messages []*string) {
 // distributes them to the destination outbound
 // queue according to the CH algo.
 func (p *Pool) hashRoute(messages []*string) {
+	p.RLock()
+	defer p.RUnlock()
 	for _, m := range messages {
 		if m == nil {
 			break
