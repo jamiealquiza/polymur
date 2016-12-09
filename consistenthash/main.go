@@ -31,18 +31,18 @@ import (
 )
 
 // HashRing provides a consistent hashing
-// mechanism that replicates the placement algorithm
+// mechanism that replicates the implementation
 // used in the Graphite project carbon-cache daemon.
 type HashRing struct {
-	sync.Mutex
+	sync.RWMutex
 	Vnodes int
 	nodes  nodeList
 }
 
-// node is an item to reference a nodeName
+// node is used to reference a nodeName
 // by a nodeId. A nodeId is a numeric value
 // specifying the node's calculated hash-ring
-// position, nodeName matches the node's string
+// position, nodeName references the node's string
 // name in a polymur connection pool.
 type node struct {
 	nodeId   int
@@ -112,7 +112,7 @@ func (h *HashRing) GetNode(k string) (string, error) {
 		return "", errors.New("Hash ring is empty")
 	}
 
-	h.Lock()
+	h.RLock()
 
 	// Hash the reference key.
 	hk := getHashKey(k)
@@ -122,7 +122,7 @@ func (h *HashRing) GetNode(k string) (string, error) {
 
 	node := h.nodes[i].nodeName
 
-	h.Unlock()
+	h.RUnlock()
 
 	return node, nil
 }
