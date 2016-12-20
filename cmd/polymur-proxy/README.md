@@ -18,26 +18,28 @@ Requires Go 1.6
 
 # Usage
 
+Polymur-proxy uses [Envy](https://github.com/jamiealquiza/envy) to automatically accept all options as env vars (variables in brackets).
+
 <pre>
-Usage of ./polymur-proxy:
+Usage of polymur-proxy:
   -api-key string
-        polymur gateway API key
+        polymur gateway API key [POLYMUR_PROXY_API_KEY]
   -cert string
-        TLS Certificate
+        TLS Certificate [POLYMUR_PROXY_CERT]
   -console-out
-        Dump output to console
+        Dump output to console [POLYMUR_PROXY_CONSOLE_OUT]
   -gateway string
-        polymur gateway address
+        polymur gateway address [POLYMUR_PROXY_GATEWAY]
   -listen-addr string
-        Polymur-proxy listen address (default "0.0.0.0:2003")
+        Polymur-proxy listen address [POLYMUR_PROXY_LISTEN_ADDR] (default "0.0.0.0:2003")
   -metrics-flush int
-        Graphite flush interval for runtime metrics (0 is disabled)
+        Graphite flush interval for runtime metrics (0 is disabled) [POLYMUR_PROXY_METRICS_FLUSH]
   -queue-cap int
-        In-flight message queue capacity (default 32768)
+        In-flight message queue capacity [POLYMUR_PROXY_QUEUE_CAP] (default 32768)
   -stat-addr string
-        runstats listen address (default "localhost:2020")
+        runstats listen address [POLYMUR_PROXY_STAT_ADDR] (default "localhost:2020")
   -workers int
-        HTTP output workers (default 3)
+        HTTP output workers [POLYMUR_PROXY_WORKERS] (default 3)
 </pre>
 
 # Example Test Setup

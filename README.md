@@ -40,24 +40,28 @@ Requires Go 1.6
 
 ### Usage
 
+Polymur uses [Envy](https://github.com/jamiealquiza/envy) to automatically accept all options as env vars (variables in brackets).
+
 <pre>
-Usage of ./polymur:
+Usage of polymur:
   -api-addr string
-        API listen address (default "localhost:2030")
+        API listen address [POLYMUR_API_ADDR] (default "localhost:2030")
   -console-out
-        Dump output to console
+        Dump output to console [POLYMUR_CONSOLE_OUT]
   -destinations string
-        Comma-delimited list of ip:port destinations
+        Comma-delimited list of ip:port destinations [POLYMUR_DESTINATIONS]
   -distribution string
-        Destination distribution methods: broadcast, hash-route (default "broadcast")
+        Destination distribution methods: broadcast, hash-route [POLYMUR_DISTRIBUTION] (default "broadcast")
+  -incoming-queue-cap int
+        In-flight incoming message queue capacity [POLYMUR_INCOMING_QUEUE_CAP] (default 32768)
   -listen-addr string
-        Polymur listen address (default "0.0.0.0:2003")
+        Polymur listen address [POLYMUR_LISTEN_ADDR] (default "0.0.0.0:2003")
   -metrics-flush int
-        Graphite flush interval for runtime metrics (0 is disabled)
-  -queue-cap int
-        In-flight message queue capacity per destination (default 4096)
+        Graphite flush interval for runtime metrics (0 is disabled) [POLYMUR_METRICS_FLUSH]
+  -outgoing-queue-cap int
+        In-flight message queue capacity per destination [POLYMUR_OUTGOING_QUEUE_CAP] (default 4096)
   -stat-addr string
-        runstats listen address (default "localhost:2020")
+        runstats listen address [POLYMUR_STAT_ADDR] (default "localhost:2020")
 </pre>
 
 ### Examples

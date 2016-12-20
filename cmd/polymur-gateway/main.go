@@ -35,6 +35,8 @@ import (
 	"github.com/jamiealquiza/polymur/pool"
 	"github.com/jamiealquiza/polymur/statstracker"
 	"github.com/jamiealquiza/runstats"
+
+	"github.com/jamiealquiza/envy"
 )
 
 var (
@@ -75,6 +77,8 @@ func init() {
 	flag.StringVar(&options.key, "key", "", "TLS Key")
 	flag.BoolVar(&options.devMode, "dev-mode", false, "Dev mode: disables Consul API key store; uses '123'")
 	flag.BoolVar(&options.keyPrefix, "key-prefix", false, "If enabled, prepends all metrics with the origin polymur-proxy API key's name")
+
+	envy.Parse("POLYMUR_GW")
 	flag.Parse()
 }
 

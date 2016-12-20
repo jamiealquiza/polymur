@@ -32,6 +32,8 @@ import (
 	"github.com/jamiealquiza/polymur/output"
 	"github.com/jamiealquiza/polymur/statstracker"
 	"github.com/jamiealquiza/runstats"
+
+	"github.com/jamiealquiza/envy"
 )
 
 var (
@@ -60,6 +62,8 @@ func init() {
 	flag.IntVar(&options.workers, "workers", 3, "HTTP output workers")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
+
+	envy.Parse("POLYMUR_PROXY")
 	flag.Parse()
 }
 

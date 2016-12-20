@@ -34,6 +34,8 @@ import (
 	"github.com/jamiealquiza/polymur/pool"
 	"github.com/jamiealquiza/polymur/statstracker"
 	"github.com/jamiealquiza/runstats"
+
+	"github.com/jamiealquiza/envy"
 )
 
 var (
@@ -62,6 +64,8 @@ func init() {
 	flag.StringVar(&options.destinations, "destinations", "", "Comma-delimited list of ip:port destinations")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
 	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, hash-route")
+
+	envy.Parse("POLYMUR")
 	flag.Parse()
 }
 

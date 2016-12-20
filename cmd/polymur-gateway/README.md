@@ -26,32 +26,40 @@ Requires Go 1.6
 
 # Usage
 
+Polymur-gateway uses [Envy](https://github.com/jamiealquiza/envy) to automatically accept all options as env vars (variables in brackets).
+
 <pre>
-Usage of ./polymur-gateway:
+Usage of polymur-gateway:
   -api-addr string
-        API listen address (default "localhost:2030")
+        API listen address [POLYMUR_GW_API_ADDR] (default "localhost:2030")
   -cert string
-        TLS Certificate
+        TLS Certificate [POLYMUR_GW_CERT]
   -console-out
-        Dump output to console
+        Dump output to console [POLYMUR_GW_CONSOLE_OUT]
   -destinations string
-        Comma-delimited list of ip:port destinations
+        Comma-delimited list of ip:port destinations [POLYMUR_GW_DESTINATIONS]
   -dev-mode
-        Dev mode: disables Consul API key store; uses '123'
+        Dev mode: disables Consul API key store; uses '123' [POLYMUR_GW_DEV_MODE]
   -distribution string
-        Destination distribution methods: broadcast, hash-route (default "broadcast")
+        Destination distribution methods: broadcast, hash-route [POLYMUR_GW_DISTRIBUTION] (default "broadcast")
+  -incoming-queue-cap int
+        In-flight incoming message queue capacity [POLYMUR_GW_INCOMING_QUEUE_CAP] (default 32768)
   -key string
-        TLS Key
+        TLS Key [POLYMUR_GW_KEY]
   -key-prefix
-      If enabled, prepends all metrics with the origin polymur-proxy API key's name
+        If enabled, prepends all metrics with the origin polymur-proxy API key's name [POLYMUR_GW_KEY_PREFIX]
   -listen-addr string
-        Polymur-gateway listen address (default "0.0.0.0")
+        Polymur-gateway listen address [POLYMUR_GW_LISTEN_ADDR] (default "0.0.0.0")
+  -listen-http-port string
+        Polymur-gateway listen port (http) [POLYMUR_GW_LISTEN_HTTP_PORT]
+  -listen-https-port string
+        Polymur-gateway listen port (https) [POLYMUR_GW_LISTEN_HTTPS_PORT]
   -metrics-flush int
-        Graphite flush interval for runtime metrics (0 is disabled)
-  -queue-cap int
-        In-flight message queue capacity per destination (default 4096)
+        Graphite flush interval for runtime metrics (0 is disabled) [POLYMUR_GW_METRICS_FLUSH]
+  -outgoing-queue-cap int
+        In-flight message queue capacity per destination [POLYMUR_GW_OUTGOING_QUEUE_CAP] (default 4096)
   -stat-addr string
-        runstats listen address (default "localhost:2020")
+        runstats listen address [POLYMUR_GW_STAT_ADDR] (default "localhost:2020")
 </pre>
 
 # Example Test Setup
