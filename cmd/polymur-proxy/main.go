@@ -47,6 +47,7 @@ var (
 		workers      int
 		console      bool
 		metricsFlush int
+		verbose      bool
 	}
 
 	sig_chan = make(chan os.Signal)
@@ -62,6 +63,7 @@ func init() {
 	flag.IntVar(&options.workers, "workers", 3, "HTTP output workers")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
+	flag.BoolVar(&options.verbose, "verbose", true, "Log verbosity")
 
 	envy.Parse("POLYMUR_PROXY")
 	flag.Parse()
@@ -93,6 +95,7 @@ func main() {
 				Gateway:       options.gateway,
 				Workers:       options.workers,
 				IncomingQueue: incomingQueue,
+				Verbose:       options.verbose,
 			},
 			ready)
 	}

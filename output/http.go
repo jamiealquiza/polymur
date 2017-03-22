@@ -39,6 +39,7 @@ type HttpWriterConfig struct {
 	IncomingQueue chan []*string
 	Workers       int
 	client        *http.Client
+	Verbose       bool
 }
 
 // GwResp captures the response string
@@ -105,9 +106,11 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 	for m := range config.IncomingQueue {
 		data, count := packDataPoints(m)
 
-		log.Printf("[worker #%d] sending batch (%d data points)\n",
-			workerId,
-			count)
+		if config.Verbose {
+			log.Printf("[worker #%d] sending batch (%d data points)\n",
+				workerId,
+				count)
+		}
 
 		response, err := apiPost(config, "/ingest", data)
 		if err != nil {
@@ -116,7 +119,13 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 			continue
 		}
 
-		log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
+		if config.Verbose && response.String != "invalid key" {
+			log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
+		}
+
+		if response.String == "invalid key" {
+			log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
+		}
 	}
 }
 
