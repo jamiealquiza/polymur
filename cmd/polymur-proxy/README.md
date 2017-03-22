@@ -38,6 +38,8 @@ Usage of polymur-proxy:
         In-flight message queue capacity [POLYMUR_PROXY_QUEUE_CAP] (default 32768)
   -stat-addr string
         runstats listen address [POLYMUR_PROXY_STAT_ADDR] (default "localhost:2020")
+  -verbose
+        Log verbosity [POLYMUR_PROXY_VERBOSE]
   -workers int
         HTTP output workers [POLYMUR_PROXY_WORKERS] (default 3)
 </pre>
