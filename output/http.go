@@ -103,8 +103,12 @@ func HttpWriter(config *HttpWriterConfig, ready chan bool) {
 func writeStream(config *HttpWriterConfig, workerId int) {
 	log.Printf("HTTP writer #%d started\n", workerId)
 
+	var data bytes.Buffer
+	w := gzip.NewWriter(&data)
+	var count int
+
 	for m := range config.IncomingQueue {
-		data, count := packDataPoints(m)
+		count = packDataPoints(w, m)
 
 		if config.Verbose {
 			log.Printf("[worker #%d] sending batch (%d data points)\n",
@@ -112,20 +116,28 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 				count)
 		}
 
-		response, err := apiPost(config, "/ingest", data)
+		response, err := apiPost(config, "/ingest", &data)
+		w.Reset(&data)
+
 		if err != nil {
 			// TODO need failure / retry logic.
 			log.Printf("[worker #%d] [gateway]: %s", workerId, err)
+			count = 0
 			continue
 		}
 
-		if config.Verbose && response.String != "invalid key" {
+		// If it's a non-200, log.
+		if response.Code != 200 {
 			log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
+		} else {
+			// If it's a 200 but verbosity is true,
+			// log.
+			if config.Verbose {
+				log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
+			}
 		}
 
-		if response.String == "invalid key" {
-			log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
-		}
+		count = 0
 	}
 }
 
@@ -155,12 +167,8 @@ func apiPost(config *HttpWriterConfig, path string, postData io.Reader) (*GwResp
 
 // packDataPoints takes a []*string batch of data points,
 // compresses them and returns the reader.
-func packDataPoints(d []*string) (io.Reader, int) {
+func packDataPoints(w *gzip.Writer, d []*string) int {
 	var count int
-
-	var compressed bytes.Buffer
-	w := gzip.NewWriter(&compressed)
-
 	for _, s := range d {
 		if s == nil {
 			break
@@ -172,5 +180,5 @@ func packDataPoints(d []*string) (io.Reader, int) {
 
 	w.Close()
 
-	return &compressed, count
+	return count
 }
