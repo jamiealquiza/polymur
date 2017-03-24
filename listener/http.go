@@ -117,7 +117,6 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 		return
 	}
 
-	io.WriteString(w, "Batch Received\n")
 	log.Printf("[client %s] Recieved batch from from %s\n",
 		client, keyName)
 
@@ -127,7 +126,16 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 	}
 
 	var b bytes.Buffer
-	b.ReadFrom(read)
+	_, err = b.ReadFrom(read)
+	if err != nil {
+		log.Printf("[client %s] Batch Error: %s\n", client, err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		io.WriteString(w, "Batch Malformed\n")
+		return
+	}
+
+	io.WriteString(w, "Batch Received\n")
+
 	req.Body.Close()
 
 	batch := []*string{}
