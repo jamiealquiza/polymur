@@ -35,11 +35,11 @@ Usage of polymur-proxy:
   -metrics-flush int
         Graphite flush interval for runtime metrics (0 is disabled) [POLYMUR_PROXY_METRICS_FLUSH]
   -queue-cap int
-        In-flight message queue capacity [POLYMUR_PROXY_QUEUE_CAP] (default 32768)
+        In-flight message queue capacity (number of data point batches [100 points max per batch]) [POLYMUR_PROXY_QUEUE_CAP] (default 32768)
   -stat-addr string
         runstats listen address [POLYMUR_PROXY_STAT_ADDR] (default "localhost:2020")
   -verbose
-        Log verbosity [POLYMUR_PROXY_VERBOSE]
+        Log verbosity [POLYMUR_PROXY_VERBOSE] (default true)
   -workers int
         HTTP output workers [POLYMUR_PROXY_WORKERS] (default 3)
 </pre>

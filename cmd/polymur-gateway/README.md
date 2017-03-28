@@ -43,7 +43,7 @@ Usage of polymur-gateway:
   -distribution string
         Destination distribution methods: broadcast, hash-route [POLYMUR_GW_DISTRIBUTION] (default "broadcast")
   -incoming-queue-cap int
-        In-flight incoming message queue capacity [POLYMUR_GW_INCOMING_QUEUE_CAP] (default 32768)
+        In-flight incoming message queue capacity (number of data point batches [100 points max per batch]) [POLYMUR_GW_INCOMING_QUEUE_CAP] (default 32768)
   -key string
         TLS Key [POLYMUR_GW_KEY]
   -key-prefix
@@ -57,7 +57,7 @@ Usage of polymur-gateway:
   -metrics-flush int
         Graphite flush interval for runtime metrics (0 is disabled) [POLYMUR_GW_METRICS_FLUSH]
   -outgoing-queue-cap int
-        In-flight message queue capacity per destination [POLYMUR_GW_OUTGOING_QUEUE_CAP] (default 4096)
+        In-flight message queue capacity per destination (number of data points) [POLYMUR_GW_OUTGOING_QUEUE_CAP] (default 4096)
   -stat-addr string
         runstats listen address [POLYMUR_GW_STAT_ADDR] (default "localhost:2020")
 </pre>

@@ -53,13 +53,13 @@ Usage of polymur:
   -distribution string
         Destination distribution methods: broadcast, hash-route [POLYMUR_DISTRIBUTION] (default "broadcast")
   -incoming-queue-cap int
-        In-flight incoming message queue capacity [POLYMUR_INCOMING_QUEUE_CAP] (default 32768)
+        In-flight incoming message queue capacity (number of data point batches [100 points max per batch]) [POLYMUR_INCOMING_QUEUE_CAP] (default 32768)
   -listen-addr string
         Polymur listen address [POLYMUR_LISTEN_ADDR] (default "0.0.0.0:2003")
   -metrics-flush int
         Graphite flush interval for runtime metrics (0 is disabled) [POLYMUR_METRICS_FLUSH]
   -outgoing-queue-cap int
-        In-flight message queue capacity per destination [POLYMUR_OUTGOING_QUEUE_CAP] (default 4096)
+        In-flight message queue capacity per destination (number of data points) [POLYMUR_OUTGOING_QUEUE_CAP] (default 4096)
   -stat-addr string
         runstats listen address [POLYMUR_STAT_ADDR] (default "localhost:2020")
 </pre>
