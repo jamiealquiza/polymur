@@ -30,6 +30,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 )
 
 type HttpWriterConfig struct {
@@ -116,24 +117,28 @@ func writeStream(config *HttpWriterConfig, workerId int) {
 				count)
 		}
 
+		start := time.Now()
 		response, err := apiPost(config, "/ingest", &data)
 		w.Reset(&data)
 
 		if err != nil {
 			// TODO need failure / retry logic.
-			log.Printf("[worker #%d] [gateway]: %s", workerId, err)
+			log.Printf("[worker #%d] gateway]: %s",
+				workerId, err)
 			count = 0
 			continue
 		}
 
 		// If it's a non-200, log.
 		if response.Code != 200 {
-			log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
+			log.Printf("[worker #%d] %s [gateway] %s",
+				workerId, time.Since(start), response.String)
 		} else {
 			// If it's a 200 but verbosity is true,
 			// log.
 			if config.Verbose {
-				log.Printf("[worker #%d] [gateway] %s", workerId, response.String)
+				log.Printf("[worker #%d] %s [gateway] %s",
+					workerId, time.Since(start), response.String)
 			}
 		}
 
