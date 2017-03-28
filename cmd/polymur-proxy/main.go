@@ -59,7 +59,7 @@ func init() {
 	flag.StringVar(&options.gateway, "gateway", "", "polymur gateway address")
 	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0:2003", "Polymur-proxy listen address")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
-	flag.IntVar(&options.queuecap, "queue-cap", 32768, "In-flight message queue capacity")
+	flag.IntVar(&options.queuecap, "queue-cap", 32768, "In-flight message queue capacity (number of data point batches [100 points max per batch])")
 	flag.IntVar(&options.workers, "workers", 3, "HTTP output workers")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
