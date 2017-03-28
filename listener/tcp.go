@@ -98,8 +98,8 @@ run:
 			}
 
 			// Drop message and respond if the incoming queue is at capacity.
-			if len(config.IncomingQueue) >= 32768 {
-				log.Printf("Incoming queue capacity %d reached\n", 32768)
+			if len(config.IncomingQueue) == cap(config.IncomingQueue) {
+				log.Printf("Incoming queue capacity %d reached\n", cap(config.IncomingQueue))
 				// Needs some flow control logic.
 			}
 
