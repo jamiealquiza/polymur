@@ -1,24 +1,5 @@
-// The MIT License (MIT)
-//
-// Copyright (c) 2016 Jamie Alquiza
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial Portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// Package listener tcp.go implements
+// a TCP metrics listener.
 package listener
 
 import (
@@ -30,7 +11,8 @@ import (
 	"github.com/jamiealquiza/polymur/statstracker"
 )
 
-type TcpListenerConfig struct {
+// TCPListenerConfig holds TCP listener config.
+type TCPListenerConfig struct {
 	Addr          string
 	IncomingQueue chan []*string
 	FlushTimeout  int
@@ -38,8 +20,9 @@ type TcpListenerConfig struct {
 	Stats         *statstracker.Stats
 }
 
-// Listens for messages.
-func TcpListener(config *TcpListenerConfig) {
+// TCPListener listens for NL delimited, plaintext
+// metrics data.
+func TCPListener(config *TCPListenerConfig) {
 	log.Printf("Metrics listener started: %s\n", config.Addr)
 	server, err := net.Listen("tcp", config.Addr)
 	if err != nil {
@@ -59,7 +42,9 @@ func TcpListener(config *TcpListenerConfig) {
 	}
 }
 
-func connectionHandler(config *TcpListenerConfig, c net.Conn) {
+// connectionHandler handles metrics input from a
+// single TCP connection.
+func connectionHandler(config *TCPListenerConfig, c net.Conn) {
 	messages := make(chan string, 128)
 	go messageBatcher(messages, config)
 
@@ -75,7 +60,9 @@ func connectionHandler(config *TcpListenerConfig, c net.Conn) {
 	close(messages)
 }
 
-func messageBatcher(messages chan string, config *TcpListenerConfig) {
+// messageBatcher batches messages for passing
+// around through Polymur.
+func messageBatcher(messages chan string, config *TCPListenerConfig) {
 	flushTimeout := time.NewTicker(time.Duration(config.FlushTimeout) * time.Second)
 	defer flushTimeout.Stop()
 

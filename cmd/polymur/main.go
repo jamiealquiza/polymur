@@ -1,24 +1,3 @@
-// The MIT License (MIT)
-//
-// Copyright (c) 2016 Jamie Alquiza
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
 package main
 
 import (
@@ -51,7 +30,7 @@ var (
 		distribution     string
 	}
 
-	sig_chan = make(chan os.Signal)
+	sigChan = make(chan os.Signal)
 )
 
 func init() {
@@ -71,8 +50,8 @@ func init() {
 
 // Handles signal events.
 func runControl() {
-	signal.Notify(sig_chan, syscall.SIGINT)
-	<-sig_chan
+	signal.Notify(sigChan, syscall.SIGINT)
+	<-sigChan
 	log.Printf("Shutting down")
 	os.Exit(0)
 }
@@ -87,12 +66,12 @@ func main() {
 
 	// Output writer.
 	if options.console {
-		go output.OutputConsole(incomingQueue)
+		go output.Console(incomingQueue)
 		ready <- true
 	} else {
-		go output.TcpWriter(
+		go output.TCPWriter(
 			pool,
-			&output.TcpWriterConfig{
+			&output.TCPWriterConfig{
 				Destinations:  options.destinations,
 				Distribution:  options.distribution,
 				IncomingQueue: incomingQueue,
@@ -108,7 +87,7 @@ func main() {
 	go statstracker.StatsTracker(pool, sentCntr)
 
 	// TCP Listener.
-	go listener.TcpListener(&listener.TcpListenerConfig{
+	go listener.TCPListener(&listener.TCPListenerConfig{
 		Addr:          options.addr,
 		IncomingQueue: incomingQueue,
 		FlushTimeout:  5,
@@ -117,7 +96,7 @@ func main() {
 	})
 
 	// API listener.
-	go polymur.Api(pool, options.apiAddr)
+	go polymur.API(pool, options.apiAddr)
 
 	// Polymur stats writer.
 	if options.metricsFlush > 0 {

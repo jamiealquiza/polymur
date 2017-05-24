@@ -1,24 +1,3 @@
-// The MIT License (MIT)
-//
-// Copyright (c) 2016 Jamie Alquiza
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
 package main
 
 import (
@@ -33,7 +12,7 @@ import (
 )
 
 // Commands available.
-var commands = map[string]func(*api.KV, *keysync.ApiKeys, []string){
+var commands = map[string]func(*api.KV, *keysync.APIKeys, []string){
 	"list":   list,
 	"create": create,
 	"regen":  regen,
@@ -80,7 +59,7 @@ func main() {
 
 	// Otherwise hit Consul and
 	// run the command.
-	keys := keysync.NewApiKeys()
+	keys := keysync.NewAPIKeys()
 
 	client, err := api.NewClient(api.DefaultConfig())
 	if err != nil {
@@ -104,7 +83,7 @@ func main() {
 
 // list returns information about registered
 // API key names and keys.
-func list(kv *api.KV, k *keysync.ApiKeys, args []string) {
+func list(kv *api.KV, k *keysync.APIKeys, args []string) {
 	if len(args) == 0 {
 		printHelp("list")
 	}
@@ -128,7 +107,7 @@ func list(kv *api.KV, k *keysync.ApiKeys, args []string) {
 
 // create takes a key name, generates a key and
 // registers it in Consul.
-func create(kv *api.KV, k *keysync.ApiKeys, args []string) {
+func create(kv *api.KV, k *keysync.APIKeys, args []string) {
 	if len(args) == 0 {
 		printHelp("create")
 	}
@@ -156,7 +135,7 @@ func create(kv *api.KV, k *keysync.ApiKeys, args []string) {
 
 // regen takes a key name and creates a new key
 // and updates the entry in Consul.
-func regen(kv *api.KV, k *keysync.ApiKeys, args []string) {
+func regen(kv *api.KV, k *keysync.APIKeys, args []string) {
 	if len(args) == 0 {
 		printHelp("regen")
 	}
@@ -183,7 +162,7 @@ func regen(kv *api.KV, k *keysync.ApiKeys, args []string) {
 }
 
 // kdelete removes a registered key in Consul.
-func kdelete(kv *api.KV, k *keysync.ApiKeys, args []string) {
+func kdelete(kv *api.KV, k *keysync.APIKeys, args []string) {
 	if len(args) == 0 {
 		printHelp("delete")
 	}
@@ -225,7 +204,7 @@ func genKey(keyName string) string {
 // pgw-key commands.
 func showCommands() {
 	fmt.Println("Commands ('pgw-key <command>' for help):")
-	for k, _ := range commands {
+	for k := range commands {
 		fmt.Printf("\t%s\n", k)
 	}
 

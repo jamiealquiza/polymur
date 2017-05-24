@@ -1,24 +1,5 @@
-// The MIT License (MIT)
-//
-// Copyright (c) 2016 Jamie Alquiza
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// Package listener http.go implements
+// an HTTP metrics listener.
 package listener
 
 import (
@@ -33,28 +14,29 @@ import (
 	"github.com/jamiealquiza/polymur/statstracker"
 )
 
-type HttpListenerConfig struct {
+// HTTPListenerConfig holds HTTP listener config.
+type HTTPListenerConfig struct {
 	Addr          string
-	HttpPort      string
-	HttpsPort     string
+	HTTPPort      string
+	HTTPSPort     string
 	IncomingQueue chan []*string
 	Cert          string
 	Key           string
 	KeyPrefix     bool
 	Stats         *statstracker.Stats
-	Keys          *keysync.ApiKeys
+	Keys          *keysync.APIKeys
 }
 
-// HttpListener accepts connections from a polymur-proxy
+// HTTPListener accepts connections from a polymur-proxy
 // client. Upon a successful /ping client API key validation,
 // batches of compressed messages are passed to /ingest handler.
-func HttpListener(config *HttpListenerConfig) {
+func HTTPListener(config *HTTPListenerConfig) {
 	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config) })
 	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) { ping(w, req, config.Keys) })
 
 	var httpsPort string
-	if config.HttpsPort != "" {
-		httpsPort = config.HttpsPort
+	if config.HTTPSPort != "" {
+		httpsPort = config.HTTPSPort
 	} else {
 		httpsPort = "443"
 	}
@@ -71,8 +53,8 @@ func HttpListener(config *HttpListenerConfig) {
 	}
 
 	var httpPort string
-	if config.HttpPort != "" {
-		httpPort = config.HttpPort
+	if config.HTTPPort != "" {
+		httpPort = config.HTTPPort
 	} else {
 		httpPort = "80"
 	}
@@ -90,7 +72,7 @@ func HttpListener(config *HttpListenerConfig) {
 // Data points arive as a concatenated string with newline delimition.
 // Each batch is broken up and populated into a []*string and pushed
 // to the IncomingQueue for downstream destination writing.
-func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig) {
+func ingest(w http.ResponseWriter, req *http.Request, config *HTTPListenerConfig) {
 
 	// Validate key on every batch.
 	// May or may not be a good idea.
@@ -165,7 +147,7 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HttpListenerConfig
 }
 
 // ping validates a connecting polymur-proxy's API key.
-func ping(w http.ResponseWriter, req *http.Request, keys *keysync.ApiKeys) {
+func ping(w http.ResponseWriter, req *http.Request, keys *keysync.APIKeys) {
 	requestKey := req.Header.Get("X-Polymur-Key")
 	keyName, valid := validateKey(requestKey, keys)
 
@@ -194,14 +176,14 @@ func ping(w http.ResponseWriter, req *http.Request, keys *keysync.ApiKeys) {
 
 // validateKey looks up if a key is registered in Consul
 // and returns the key name and key.
-func validateKey(k string, keys *keysync.ApiKeys) (string, bool) {
+func validateKey(k string, keys *keysync.APIKeys) (string, bool) {
 	keys.Lock()
 	name, valid := keys.Keys[k]
 	keys.Unlock()
 
 	if valid {
 		return name, true
-	} else {
-		return "", false
 	}
+
+	return "", false
 }

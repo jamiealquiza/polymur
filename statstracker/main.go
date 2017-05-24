@@ -1,24 +1,5 @@
-// The MIT License (MIT)
-//
-// Copyright (c) 2016 Jamie Alquiza
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// Package statstracker facilitates
+// statistics collection and reporting.
 package statstracker
 
 import (
@@ -29,37 +10,42 @@ import (
 	"github.com/jamiealquiza/polymur/pool"
 )
 
+// Stats holds stats data.
 type Stats struct {
 	sync.Mutex
 	count int64
 	rate  float64
 }
 
+// UpdateCount updates a counter.
 func (s *Stats) UpdateCount(v int64) {
 	s.Lock()
 	s.count += v
 	s.Unlock()
 }
 
+// Getcount gets a counter value.
 func (s *Stats) GetCount() int64 {
 	s.Lock()
 	defer s.Unlock()
 	return s.count
 }
 
+// UpdateRate updates a rate.
 func (s *Stats) UpdateRate(v float64) {
 	s.Lock()
 	s.rate = v
 	s.Unlock()
 }
 
+// GetRate gets a rate value.
 func (s *Stats) GetRate() float64 {
 	s.Lock()
 	defer s.Unlock()
 	return s.rate
 }
 
-// Outputs periodic info summary.
+// StatsTracker outputs periodic info summary.
 func StatsTracker(pool *pool.Pool, s *Stats) {
 	tick := time.Tick(5 * time.Second)
 	lastInterval := time.Now()

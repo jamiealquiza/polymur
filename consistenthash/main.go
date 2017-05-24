@@ -1,24 +1,8 @@
-// The MIT License (MIT)
-//
-// Copyright (c) 2016 Jamie Alquiza
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// Package consistenthash is a Go port
+// of the Graphite project's consistent-hashing
+// algorithm. Givn the same settings (e.g. vnodes),
+// consistenthash will yield the same node by name
+// for a given key as you'd observe in carbon-relay.
 package consistenthash
 
 import (
@@ -30,9 +14,9 @@ import (
 	"sync"
 )
 
-// HashRing provides a consistent hashing
-// mechanism that replicates the implementation
-// used in the Graphite project carbon-cache daemon.
+// HashRing implmenents a consistent-hash
+// ring with a configurable number of vnodes
+// that are mapped to a list of real nodes.
 type HashRing struct {
 	sync.RWMutex
 	Vnodes int
@@ -40,12 +24,12 @@ type HashRing struct {
 }
 
 // node is used to reference a nodeName
-// by a nodeId. A nodeId is a numeric value
+// by a nodeID. A nodeID is a numeric value
 // specifying the node's calculated hash-ring
 // position, nodeName references the node's string
 // name in a polymur connection pool.
 type node struct {
-	nodeId   int
+	nodeID   int
 	nodeName string
 }
 
@@ -59,7 +43,7 @@ func (n nodeList) Len() int {
 }
 
 func (n nodeList) Less(i, j int) bool {
-	return n[i].nodeId < n[j].nodeId
+	return n[i].nodeID < n[j].nodeID
 }
 
 func (n nodeList) Swap(i, j int) {
@@ -81,7 +65,7 @@ func (h *HashRing) AddNode(keyname, name string) {
 	for i := 0; i < h.Vnodes; i++ {
 		nodeName := fmt.Sprintf("%s:%d", keyname, i)
 		key := getHashKey(nodeName)
-		h.nodes = append(h.nodes, &node{nodeId: key, nodeName: name})
+		h.nodes = append(h.nodes, &node{nodeID: key, nodeName: name})
 	}
 
 	sort.Sort(h.nodes)
@@ -118,7 +102,7 @@ func (h *HashRing) GetNode(k string) (string, error) {
 	hk := getHashKey(k)
 
 	// Get index in the ring.
-	i := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].nodeId >= hk }) % len(h.nodes)
+	i := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].nodeID >= hk }) % len(h.nodes)
 
 	node := h.nodes[i].nodeName
 

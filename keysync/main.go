@@ -1,24 +1,5 @@
-// The MIT License (MIT)
-//
-// Copyright (c) 2016 Jamie Alquiza
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// Package keysync syncronizes Polymur-gateway/proxy
+// client API keys in memory via Consul.
 package keysync
 
 import (
@@ -29,27 +10,29 @@ import (
 	"github.com/jamiealquiza/consul/api"
 )
 
-type ApiKeys struct {
+// APIKeys is a map of API keys
+// syncronized via Consul.
+type APIKeys struct {
 	sync.Mutex
 	Keys map[string]string
 }
 
 // KeyNameByKey returns a keys name by key lookup.
-func (keys *ApiKeys) KeyNameByKey(k string) string {
+func (keys *APIKeys) KeyNameByKey(k string) string {
 	keys.Lock()
 	name, valid := keys.Keys[k]
 	keys.Unlock()
 
 	if valid {
 		return name
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 // KeyNameExists returns whether or not a key by name
 // exists.
-func (keys *ApiKeys) KeyNameExists(k string) bool {
+func (keys *APIKeys) KeyNameExists(k string) bool {
 	keys.Lock()
 	defer keys.Unlock()
 
@@ -62,13 +45,15 @@ func (keys *ApiKeys) KeyNameExists(k string) bool {
 	return false
 }
 
-func NewApiKeys() *ApiKeys {
-	return &ApiKeys{
+// NewAPIKeys initializes an *APIKeys.
+func NewAPIKeys() *APIKeys {
+	return &APIKeys{
 		Keys: make(map[string]string),
 	}
 }
 
-func Run(localKeys *ApiKeys) {
+// Run initalizes background API key sync.
+func Run(localKeys *APIKeys) {
 	interval := 30
 	timer := time.NewTicker(time.Duration(interval) * time.Second)
 	defer timer.Stop()
@@ -102,9 +87,9 @@ func Run(localKeys *ApiKeys) {
 	}
 }
 
-// Sync syncronizes a *ApiKeys with what is registered
+// Sync syncronizes a *APIKeys with what is registered
 // in Consul and returns the new keys and removed keys count delta.
-func Sync(localKeys *ApiKeys, registeredKeys api.KVPairs) (uint8, uint8) {
+func Sync(localKeys *APIKeys, registeredKeys api.KVPairs) (uint8, uint8) {
 	var newKeys, removedKeys uint8
 
 	localKeys.Lock()
@@ -120,7 +105,7 @@ func Sync(localKeys *ApiKeys, registeredKeys api.KVPairs) (uint8, uint8) {
 		}
 	}
 	// Purge keys.
-	for k, _ := range localKeys.Keys {
+	for k := range localKeys.Keys {
 		if !keyRegistered(k, registeredKeys) {
 			delete(localKeys.Keys, k)
 			removedKeys++
@@ -138,9 +123,8 @@ func keyRegistered(k string, kvp api.KVPairs) bool {
 		key := string(kv.Value)
 		if k == key {
 			return true
-		} else {
-			continue
 		}
 	}
+
 	return false
 }
