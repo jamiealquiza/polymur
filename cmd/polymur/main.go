@@ -30,7 +30,7 @@ var (
 		distribution     string
 	}
 
-	sig_chan = make(chan os.Signal)
+	sigChan = make(chan os.Signal)
 )
 
 func init() {
@@ -50,8 +50,8 @@ func init() {
 
 // Handles signal events.
 func runControl() {
-	signal.Notify(sig_chan, syscall.SIGINT)
-	<-sig_chan
+	signal.Notify(sigChan, syscall.SIGINT)
+	<-sigChan
 	log.Printf("Shutting down")
 	os.Exit(0)
 }
@@ -66,12 +66,12 @@ func main() {
 
 	// Output writer.
 	if options.console {
-		go output.OutputConsole(incomingQueue)
+		go output.Console(incomingQueue)
 		ready <- true
 	} else {
-		go output.TcpWriter(
+		go output.TCPWriter(
 			pool,
-			&output.TcpWriterConfig{
+			&output.TCPWriterConfig{
 				Destinations:  options.destinations,
 				Distribution:  options.distribution,
 				IncomingQueue: incomingQueue,
@@ -87,7 +87,7 @@ func main() {
 	go statstracker.StatsTracker(pool, sentCntr)
 
 	// TCP Listener.
-	go listener.TcpListener(&listener.TcpListenerConfig{
+	go listener.TCPListener(&listener.TCPListenerConfig{
 		Addr:          options.addr,
 		IncomingQueue: incomingQueue,
 		FlushTimeout:  5,
@@ -96,7 +96,7 @@ func main() {
 	})
 
 	// API listener.
-	go polymur.Api(pool, options.apiAddr)
+	go polymur.API(pool, options.apiAddr)
 
 	// Polymur stats writer.
 	if options.metricsFlush > 0 {

@@ -36,7 +36,7 @@ func getdest(r Request) string {
 
 	// Get all active.
 	active := []string{}
-	for k, _ := range r.pool.Conns {
+	for k := range r.pool.Conns {
 		active = append(active, k)
 	}
 	dests["active"] = active
@@ -80,9 +80,9 @@ func deldest(r Request) string {
 	return fmt.Sprintf("Unregistered destination: %s\n", r.param)
 }
 
-// Api is a simple TCP listener that
+// API is a simple TCP listener that
 // listens for requests.
-func Api(p *pool.Pool, address string) {
+func API(p *pool.Pool, address string) {
 	log.Printf("API started: %s\n", address)
 
 	server, err := net.Listen("tcp", address)

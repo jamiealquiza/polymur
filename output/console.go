@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func OutputConsole(q <-chan []*string) {
+func Console(q <-chan []*string) {
 batch:
 	for m := range q {
 		for _, l := range m {

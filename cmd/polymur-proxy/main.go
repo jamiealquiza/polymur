@@ -29,7 +29,7 @@ var (
 		verbose      bool
 	}
 
-	sig_chan = make(chan os.Signal)
+	sigChan = make(chan os.Signal)
 )
 
 func init() {
@@ -50,8 +50,8 @@ func init() {
 
 // Handles signal events.
 func runControl() {
-	signal.Notify(sig_chan, syscall.SIGINT)
-	<-sig_chan
+	signal.Notify(sigChan, syscall.SIGINT)
+	<-sigChan
 	log.Printf("Shutting down")
 	os.Exit(0)
 }
@@ -64,13 +64,13 @@ func main() {
 
 	// Output writer.
 	if options.console {
-		go output.OutputConsole(incomingQueue)
+		go output.Console(incomingQueue)
 		ready <- true
 	} else {
-		go output.HttpWriter(
-			&output.HttpWriterConfig{
+		go output.HTTPWriter(
+			&output.HTTPWriterConfig{
 				Cert:          options.cert,
-				ApiKey:        options.apiKey,
+				APIKey:        options.apiKey,
 				Gateway:       options.gateway,
 				Workers:       options.workers,
 				IncomingQueue: incomingQueue,
@@ -86,7 +86,7 @@ func main() {
 	go statstracker.StatsTracker(nil, sentCntr)
 
 	// TCP Listener.
-	go listener.TcpListener(&listener.TcpListenerConfig{
+	go listener.TCPListener(&listener.TCPListenerConfig{
 		Addr:          options.addr,
 		IncomingQueue: incomingQueue,
 		FlushTimeout:  15,

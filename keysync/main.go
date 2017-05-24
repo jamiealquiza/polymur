@@ -8,27 +8,27 @@ import (
 	"github.com/jamiealquiza/consul/api"
 )
 
-type ApiKeys struct {
+type APIKeys struct {
 	sync.Mutex
 	Keys map[string]string
 }
 
 // KeyNameByKey returns a keys name by key lookup.
-func (keys *ApiKeys) KeyNameByKey(k string) string {
+func (keys *APIKeys) KeyNameByKey(k string) string {
 	keys.Lock()
 	name, valid := keys.Keys[k]
 	keys.Unlock()
 
 	if valid {
 		return name
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 // KeyNameExists returns whether or not a key by name
 // exists.
-func (keys *ApiKeys) KeyNameExists(k string) bool {
+func (keys *APIKeys) KeyNameExists(k string) bool {
 	keys.Lock()
 	defer keys.Unlock()
 
@@ -41,13 +41,13 @@ func (keys *ApiKeys) KeyNameExists(k string) bool {
 	return false
 }
 
-func NewApiKeys() *ApiKeys {
-	return &ApiKeys{
+func NewAPIKeys() *APIKeys {
+	return &APIKeys{
 		Keys: make(map[string]string),
 	}
 }
 
-func Run(localKeys *ApiKeys) {
+func Run(localKeys *APIKeys) {
 	interval := 30
 	timer := time.NewTicker(time.Duration(interval) * time.Second)
 	defer timer.Stop()
@@ -81,9 +81,9 @@ func Run(localKeys *ApiKeys) {
 	}
 }
 
-// Sync syncronizes a *ApiKeys with what is registered
+// Sync syncronizes a *APIKeys with what is registered
 // in Consul and returns the new keys and removed keys count delta.
-func Sync(localKeys *ApiKeys, registeredKeys api.KVPairs) (uint8, uint8) {
+func Sync(localKeys *APIKeys, registeredKeys api.KVPairs) (uint8, uint8) {
 	var newKeys, removedKeys uint8
 
 	localKeys.Lock()
@@ -99,7 +99,7 @@ func Sync(localKeys *ApiKeys, registeredKeys api.KVPairs) (uint8, uint8) {
 		}
 	}
 	// Purge keys.
-	for k, _ := range localKeys.Keys {
+	for k := range localKeys.Keys {
 		if !keyRegistered(k, registeredKeys) {
 			delete(localKeys.Keys, k)
 			removedKeys++
@@ -117,9 +117,8 @@ func keyRegistered(k string, kvp api.KVPairs) bool {
 		key := string(kv.Value)
 		if k == key {
 			return true
-		} else {
-			continue
 		}
 	}
+
 	return false
 }

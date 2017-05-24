@@ -19,12 +19,12 @@ type HashRing struct {
 }
 
 // node is used to reference a nodeName
-// by a nodeId. A nodeId is a numeric value
+// by a nodeID. A nodeID is a numeric value
 // specifying the node's calculated hash-ring
 // position, nodeName references the node's string
 // name in a polymur connection pool.
 type node struct {
-	nodeId   int
+	nodeID   int
 	nodeName string
 }
 
@@ -38,7 +38,7 @@ func (n nodeList) Len() int {
 }
 
 func (n nodeList) Less(i, j int) bool {
-	return n[i].nodeId < n[j].nodeId
+	return n[i].nodeID < n[j].nodeID
 }
 
 func (n nodeList) Swap(i, j int) {
@@ -60,7 +60,7 @@ func (h *HashRing) AddNode(keyname, name string) {
 	for i := 0; i < h.Vnodes; i++ {
 		nodeName := fmt.Sprintf("%s:%d", keyname, i)
 		key := getHashKey(nodeName)
-		h.nodes = append(h.nodes, &node{nodeId: key, nodeName: name})
+		h.nodes = append(h.nodes, &node{nodeID: key, nodeName: name})
 	}
 
 	sort.Sort(h.nodes)
@@ -97,7 +97,7 @@ func (h *HashRing) GetNode(k string) (string, error) {
 	hk := getHashKey(k)
 
 	// Get index in the ring.
-	i := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].nodeId >= hk }) % len(h.nodes)
+	i := sort.Search(len(h.nodes), func(i int) bool { return h.nodes[i].nodeID >= hk }) % len(h.nodes)
 
 	node := h.nodes[i].nodeName
 

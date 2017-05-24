@@ -12,7 +12,7 @@ import (
 )
 
 // Commands available.
-var commands = map[string]func(*api.KV, *keysync.ApiKeys, []string){
+var commands = map[string]func(*api.KV, *keysync.APIKeys, []string){
 	"list":   list,
 	"create": create,
 	"regen":  regen,
@@ -59,7 +59,7 @@ func main() {
 
 	// Otherwise hit Consul and
 	// run the command.
-	keys := keysync.NewApiKeys()
+	keys := keysync.NewAPIKeys()
 
 	client, err := api.NewClient(api.DefaultConfig())
 	if err != nil {
@@ -83,7 +83,7 @@ func main() {
 
 // list returns information about registered
 // API key names and keys.
-func list(kv *api.KV, k *keysync.ApiKeys, args []string) {
+func list(kv *api.KV, k *keysync.APIKeys, args []string) {
 	if len(args) == 0 {
 		printHelp("list")
 	}
@@ -107,7 +107,7 @@ func list(kv *api.KV, k *keysync.ApiKeys, args []string) {
 
 // create takes a key name, generates a key and
 // registers it in Consul.
-func create(kv *api.KV, k *keysync.ApiKeys, args []string) {
+func create(kv *api.KV, k *keysync.APIKeys, args []string) {
 	if len(args) == 0 {
 		printHelp("create")
 	}
@@ -135,7 +135,7 @@ func create(kv *api.KV, k *keysync.ApiKeys, args []string) {
 
 // regen takes a key name and creates a new key
 // and updates the entry in Consul.
-func regen(kv *api.KV, k *keysync.ApiKeys, args []string) {
+func regen(kv *api.KV, k *keysync.APIKeys, args []string) {
 	if len(args) == 0 {
 		printHelp("regen")
 	}
@@ -162,7 +162,7 @@ func regen(kv *api.KV, k *keysync.ApiKeys, args []string) {
 }
 
 // kdelete removes a registered key in Consul.
-func kdelete(kv *api.KV, k *keysync.ApiKeys, args []string) {
+func kdelete(kv *api.KV, k *keysync.APIKeys, args []string) {
 	if len(args) == 0 {
 		printHelp("delete")
 	}

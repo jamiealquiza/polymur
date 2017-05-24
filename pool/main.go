@@ -32,9 +32,9 @@ import (
 )
 
 type Destination struct {
-	Ip   string
+	IP   string
 	Port string
-	Id   string
+	ID   string
 	Addr string
 	Name string
 }
@@ -166,7 +166,7 @@ func (p *Pool) AddConn(dest Destination) {
 	// This replicates the destination key setup in
 	// the carbon-cache implementation. It's a string composed of the
 	// (destination IP, instance) tuple. E.g. "('127.0.0.1', 'a')"
-	destString := fmt.Sprintf("('%s', '%s')", dest.Ip, dest.Id)
+	destString := fmt.Sprintf("('%s', '%s')", dest.IP, dest.ID)
 	p.Ring.AddNode(destString, dest.Name)
 }
 
@@ -216,14 +216,14 @@ func ParseDestination(s string) (Destination, error) {
 
 	switch len(parts) {
 	case 2:
-		d.Ip, d.Port = parts[0], parts[1]
+		d.IP, d.Port = parts[0], parts[1]
 	case 3:
-		d.Ip, d.Port, d.Id = parts[0], parts[1], parts[2]
+		d.IP, d.Port, d.ID = parts[0], parts[1], parts[2]
 	default:
 		return d, fmt.Errorf("Destination %s not valid\n", s)
 	}
 
-	d.Addr = d.Ip + ":" + d.Port
+	d.Addr = d.IP + ":" + d.Port
 
 	return d, nil
 }

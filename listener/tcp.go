@@ -9,7 +9,7 @@ import (
 	"github.com/jamiealquiza/polymur/statstracker"
 )
 
-type TcpListenerConfig struct {
+type TCPListenerConfig struct {
 	Addr          string
 	IncomingQueue chan []*string
 	FlushTimeout  int
@@ -18,7 +18,7 @@ type TcpListenerConfig struct {
 }
 
 // Listens for messages.
-func TcpListener(config *TcpListenerConfig) {
+func TCPListener(config *TCPListenerConfig) {
 	log.Printf("Metrics listener started: %s\n", config.Addr)
 	server, err := net.Listen("tcp", config.Addr)
 	if err != nil {
@@ -38,7 +38,7 @@ func TcpListener(config *TcpListenerConfig) {
 	}
 }
 
-func connectionHandler(config *TcpListenerConfig, c net.Conn) {
+func connectionHandler(config *TCPListenerConfig, c net.Conn) {
 	messages := make(chan string, 128)
 	go messageBatcher(messages, config)
 
@@ -54,7 +54,7 @@ func connectionHandler(config *TcpListenerConfig, c net.Conn) {
 	close(messages)
 }
 
-func messageBatcher(messages chan string, config *TcpListenerConfig) {
+func messageBatcher(messages chan string, config *TCPListenerConfig) {
 	flushTimeout := time.NewTicker(time.Duration(config.FlushTimeout) * time.Second)
 	defer flushTimeout.Stop()
 

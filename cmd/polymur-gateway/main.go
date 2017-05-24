@@ -37,7 +37,7 @@ var (
 		keyPrefix        bool
 	}
 
-	sig_chan = make(chan os.Signal)
+	sigChan = make(chan os.Signal)
 )
 
 func init() {
@@ -63,8 +63,8 @@ func init() {
 
 // Handles signal events.
 func runControl() {
-	signal.Notify(sig_chan, syscall.SIGINT)
-	<-sig_chan
+	signal.Notify(sigChan, syscall.SIGINT)
+	<-sigChan
 	log.Printf("Shutting down")
 	os.Exit(0)
 }
@@ -80,12 +80,12 @@ func main() {
 
 	// Output writer.
 	if options.console {
-		go output.OutputConsole(incomingQueue)
+		go output.Console(incomingQueue)
 		ready <- true
 	} else {
-		go output.TcpWriter(
+		go output.TCPWriter(
 			pool,
-			&output.TcpWriterConfig{
+			&output.TCPWriterConfig{
 				Destinations:  options.destinations,
 				Distribution:  options.distribution,
 				IncomingQueue: incomingQueue,
@@ -101,7 +101,7 @@ func main() {
 	go statstracker.StatsTracker(pool, sentCntr)
 
 	// API key sync service.
-	apiKeys := keysync.NewApiKeys()
+	apiKeys := keysync.NewAPIKeys()
 	if !options.devMode {
 		go keysync.Run(apiKeys)
 	} else {
@@ -110,10 +110,10 @@ func main() {
 	}
 
 	// HTTP Listener.
-	go listener.HttpListener(&listener.HttpListenerConfig{
+	go listener.HTTPListener(&listener.HTTPListenerConfig{
 		Addr:          options.addr,
-		HttpPort:      options.httpPort,
-		HttpsPort:     options.httpsPort,
+		HTTPPort:      options.httpPort,
+		HTTPSPort:     options.httpsPort,
 		IncomingQueue: incomingQueue,
 		Cert:          options.cert,
 		KeyPrefix:     options.keyPrefix,
@@ -123,7 +123,7 @@ func main() {
 	})
 
 	// API listener.
-	go polymur.Api(pool, options.apiAddr)
+	go polymur.API(pool, options.apiAddr)
 
 	// Polymur stats writer.
 	if options.metricsFlush > 0 {
