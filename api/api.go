@@ -1,4 +1,6 @@
-package polymur
+// Package API implements Polymur API
+// methods.
+package api
 
 import (
 	"bufio"
