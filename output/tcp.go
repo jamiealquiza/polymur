@@ -1,3 +1,5 @@
+// Package output tcp.go writes
+// datapoints to a TCP destination.
 package output
 
 import (
@@ -11,6 +13,8 @@ import (
 	"github.com/jamiealquiza/polymur/pool"
 )
 
+// TCPWriterConfig holds TCP output
+// configuraiton.
 type TCPWriterConfig struct {
 	Destinations  string
 	Distribution  string
@@ -18,6 +22,8 @@ type TCPWriterConfig struct {
 	QueueCap      int
 }
 
+// TCPWriter reads datapoints from the outbound destination
+// queue and writes it to the TCP destination.
 func TCPWriter(p *pool.Pool, config *TCPWriterConfig, ready chan bool) {
 	p.Lock()
 	p.Distribution = config.Distribution

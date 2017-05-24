@@ -1,3 +1,5 @@
+// Package output http.go writes
+// datapoints to an HTTP destination.
 package output
 
 import (
@@ -12,6 +14,8 @@ import (
 	"time"
 )
 
+// HTTPWriterConfig holds HTTP output
+// configuration.
 type HTTPWriterConfig struct {
 	Cert          string
 	APIKey        string

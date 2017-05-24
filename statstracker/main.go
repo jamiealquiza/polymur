@@ -1,3 +1,5 @@
+// Package statstracker facilitates
+// statistics collection and reporting.
 package statstracker
 
 import (
@@ -8,37 +10,42 @@ import (
 	"github.com/jamiealquiza/polymur/pool"
 )
 
+// Stats holds stats data.
 type Stats struct {
 	sync.Mutex
 	count int64
 	rate  float64
 }
 
+// UpdateCount updates a counter.
 func (s *Stats) UpdateCount(v int64) {
 	s.Lock()
 	s.count += v
 	s.Unlock()
 }
 
+// Getcount gets a counter value.
 func (s *Stats) GetCount() int64 {
 	s.Lock()
 	defer s.Unlock()
 	return s.count
 }
 
+// UpdateRate updates a rate.
 func (s *Stats) UpdateRate(v float64) {
 	s.Lock()
 	s.rate = v
 	s.Unlock()
 }
 
+// GetRate gets a rate value.
 func (s *Stats) GetRate() float64 {
 	s.Lock()
 	defer s.Unlock()
 	return s.rate
 }
 
-// Outputs periodic info summary.
+// StatsTracker outputs periodic info summary.
 func StatsTracker(pool *pool.Pool, s *Stats) {
 	tick := time.Tick(5 * time.Second)
 	lastInterval := time.Now()

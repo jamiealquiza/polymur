@@ -1,3 +1,5 @@
+// Package listener tcp.go implements
+// a TCP metrics listener.
 package listener
 
 import (
@@ -9,6 +11,7 @@ import (
 	"github.com/jamiealquiza/polymur/statstracker"
 )
 
+// TCPListenerConfig holds TCP listener config.
 type TCPListenerConfig struct {
 	Addr          string
 	IncomingQueue chan []*string
@@ -17,7 +20,8 @@ type TCPListenerConfig struct {
 	Stats         *statstracker.Stats
 }
 
-// Listens for messages.
+// TCPListener listens for NL delimited, plaintext
+// metrics data.
 func TCPListener(config *TCPListenerConfig) {
 	log.Printf("Metrics listener started: %s\n", config.Addr)
 	server, err := net.Listen("tcp", config.Addr)
@@ -38,6 +42,8 @@ func TCPListener(config *TCPListenerConfig) {
 	}
 }
 
+// connectionHandler handles metrics input from a
+// single TCP connection.
 func connectionHandler(config *TCPListenerConfig, c net.Conn) {
 	messages := make(chan string, 128)
 	go messageBatcher(messages, config)
@@ -54,6 +60,8 @@ func connectionHandler(config *TCPListenerConfig, c net.Conn) {
 	close(messages)
 }
 
+// messageBatcher batches messages for passing
+// around through Polymur.
 func messageBatcher(messages chan string, config *TCPListenerConfig) {
 	flushTimeout := time.NewTicker(time.Duration(config.FlushTimeout) * time.Second)
 	defer flushTimeout.Stop()

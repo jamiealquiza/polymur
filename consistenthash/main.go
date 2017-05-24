@@ -1,3 +1,8 @@
+// Package consistenthash is a Go port
+// of the Graphite project's consistent-hashing
+// algorithm. Givn the same settings (e.g. vnodes),
+// consistenthash will yield the same node by name
+// for a given key as you'd observe in carbon-relay.
 package consistenthash
 
 import (
@@ -9,9 +14,9 @@ import (
 	"sync"
 )
 
-// HashRing provides a consistent hashing
-// mechanism that replicates the implementation
-// used in the Graphite project carbon-cache daemon.
+// HashRing implmenents a consistent-hash
+// ring with a configurable number of vnodes
+// that are mapped to a list of real nodes.
 type HashRing struct {
 	sync.RWMutex
 	Vnodes int

@@ -204,7 +204,7 @@ func genKey(keyName string) string {
 // pgw-key commands.
 func showCommands() {
 	fmt.Println("Commands ('pgw-key <command>' for help):")
-	for k, _ := range commands {
+	for k := range commands {
 		fmt.Printf("\t%s\n", k)
 	}
 

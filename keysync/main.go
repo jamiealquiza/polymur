@@ -1,3 +1,5 @@
+// Package keysync syncronizes Polymur-gateway/proxy
+// client API keys in memory via Consul.
 package keysync
 
 import (
@@ -8,6 +10,8 @@ import (
 	"github.com/jamiealquiza/consul/api"
 )
 
+// APIKeys is a map of API keys
+// syncronized via Consul.
 type APIKeys struct {
 	sync.Mutex
 	Keys map[string]string
@@ -41,12 +45,14 @@ func (keys *APIKeys) KeyNameExists(k string) bool {
 	return false
 }
 
+// NewAPIKeys initializes an *APIKeys.
 func NewAPIKeys() *APIKeys {
 	return &APIKeys{
 		Keys: make(map[string]string),
 	}
 }
 
+// Run initalizes background API key sync.
 func Run(localKeys *APIKeys) {
 	interval := 30
 	timer := time.NewTicker(time.Duration(interval) * time.Second)

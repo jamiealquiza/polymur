@@ -1,3 +1,5 @@
+// Package listener http.go implements
+// an HTTP metrics listener.
 package listener
 
 import (
@@ -12,6 +14,7 @@ import (
 	"github.com/jamiealquiza/polymur/statstracker"
 )
 
+// HTTPListenerConfig holds HTTP listener config.
 type HTTPListenerConfig struct {
 	Addr          string
 	HTTPPort      string
