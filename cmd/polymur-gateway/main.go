@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jamiealquiza/polymur"
+	"github.com/jamiealquiza/polymur/api"
 	"github.com/jamiealquiza/polymur/keysync"
 	"github.com/jamiealquiza/polymur/listener"
 	"github.com/jamiealquiza/polymur/output"
@@ -123,7 +123,7 @@ func main() {
 	})
 
 	// API listener.
-	go polymur.API(pool, options.apiAddr)
+	go api.API(pool, options.apiAddr)
 
 	// Polymur stats writer.
 	if options.metricsFlush > 0 {
