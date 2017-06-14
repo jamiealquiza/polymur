@@ -22,6 +22,7 @@ type HTTPWriterConfig struct {
 	Gateway       string
 	IncomingQueue chan []*string
 	Workers       int
+	HttpTimeout   int
 	client        *http.Client
 	Verbose       bool
 }
@@ -55,9 +56,12 @@ func HTTPWriter(config *HTTPWriterConfig, ready chan bool) {
 
 		tlsConf := &tls.Config{RootCAs: roots}
 		tr := &http.Transport{TLSClientConfig: tlsConf}
-		config.client = &http.Client{Transport: tr}
+		config.client = &http.Client{
+			Transport: tr,
+			Timeout:   time.Duration(config.HttpTimeout) * time.Second,
+		}
 	} else {
-		config.client = &http.Client{}
+		config.client = &http.Client{Timeout: time.Duration(config.HttpTimeout) * time.Second}
 	}
 
 	// Try connection, verify api key.
@@ -139,6 +143,8 @@ func apiPost(config *HTTPWriterConfig, path string, postData io.Reader) (*GwResp
 
 	req.Header.Add("X-polymur-key", config.APIKey)
 	resp, err := config.client.Do(req)
+	defer resp.Body.Close()
+
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +153,6 @@ func apiPost(config *HTTPWriterConfig, path string, postData io.Reader) (*GwResp
 	if err != nil {
 		return nil, err
 	}
-
-	resp.Body.Close()
 
 	return &GwResp{String: string(data), Code: resp.StatusCode}, nil
 }
