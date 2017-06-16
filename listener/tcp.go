@@ -47,7 +47,8 @@ func TCPListener(config *TCPListenerConfig) {
 func connectionHandler(config *TCPListenerConfig, c net.Conn) {
 	messages := make(chan string, 128)
 	go messageBatcher(messages, config)
-
+	defer close(messages)
+	
 	inbound := bufio.NewScanner(c)
 	defer c.Close()
 
@@ -56,8 +57,6 @@ func connectionHandler(config *TCPListenerConfig, c net.Conn) {
 		messages <- m
 		config.Stats.UpdateCount(1)
 	}
-
-	close(messages)
 }
 
 // messageBatcher batches messages for passing
