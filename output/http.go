@@ -143,11 +143,11 @@ func apiPost(config *HTTPWriterConfig, path string, postData io.Reader) (*GwResp
 
 	req.Header.Add("X-polymur-key", config.APIKey)
 	resp, err := config.client.Do(req)
-	defer resp.Body.Close()
 
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
