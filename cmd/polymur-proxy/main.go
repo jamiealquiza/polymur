@@ -79,7 +79,7 @@ func main() {
 				Workers:       options.workers,
 				IncomingQueue: incomingQueue,
 				HttpTimeout:   options.httpTimeout,
-				MaxConns:      options.maxConns
+				MaxConns:      options.maxConns,
 				Verbose:       options.verbose,
 			},
 			ready)
