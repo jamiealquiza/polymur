@@ -62,7 +62,11 @@ func HTTPWriter(config *HTTPWriterConfig, ready chan bool) {
 			Timeout:   time.Duration(config.HttpTimeout) * time.Second,
 		}
 	} else {
-		config.client = &http.Client{Timeout: time.Duration(config.HttpTimeout) * time.Second, MaxIdleConnsPerHost: config.MaxConns}
+		config.client = &http.Client{Timeout: time.Duration(config.HttpTimeout) * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConnsPerHost: config.MaxConns,
+			},
+		}
 	}
 
 	// Try connection, verify api key.
