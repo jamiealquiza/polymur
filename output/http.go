@@ -23,6 +23,7 @@ type HTTPWriterConfig struct {
 	IncomingQueue chan []*string
 	Workers       int
 	HttpTimeout   int
+	MaxConns      int
 	client        *http.Client
 	Verbose       bool
 }
@@ -55,13 +56,13 @@ func HTTPWriter(config *HTTPWriterConfig, ready chan bool) {
 		}
 
 		tlsConf := &tls.Config{RootCAs: roots}
-		tr := &http.Transport{TLSClientConfig: tlsConf}
+		tr := &http.Transport{TLSClientConfig: tlsConf, MaxIdleConnsPerHost: config.MaxConns}
 		config.client = &http.Client{
 			Transport: tr,
 			Timeout:   time.Duration(config.HttpTimeout) * time.Second,
 		}
 	} else {
-		config.client = &http.Client{Timeout: time.Duration(config.HttpTimeout) * time.Second}
+		config.client = &http.Client{Timeout: time.Duration(config.HttpTimeout) * time.Second, MaxIdleConnsPerHost: config.MaxConns}
 	}
 
 	// Try connection, verify api key.
