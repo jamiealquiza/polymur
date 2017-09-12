@@ -26,6 +26,8 @@ var (
 		workers      int
 		console      bool
 		metricsFlush int
+		httpTimeout  int
+		maxConns     int
 		verbose      bool
 	}
 
@@ -42,6 +44,8 @@ func init() {
 	flag.IntVar(&options.workers, "workers", 3, "HTTP output workers")
 	flag.BoolVar(&options.console, "console-out", false, "Dump output to console")
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
+	flag.IntVar(&options.httpTimeout, "http-timeout", 10, "time out in secs for the http client")
+	flag.IntVar(&options.maxConns, "max-conns", 10, "Max conns per host for the http client")	
 	flag.BoolVar(&options.verbose, "verbose", true, "Log verbosity")
 
 	envy.Parse("POLYMUR_PROXY")
@@ -74,6 +78,8 @@ func main() {
 				Gateway:       options.gateway,
 				Workers:       options.workers,
 				IncomingQueue: incomingQueue,
+				HttpTimeout:   options.httpTimeout,
+				MaxConns:      options.maxConns,
 				Verbose:       options.verbose,
 			},
 			ready)
