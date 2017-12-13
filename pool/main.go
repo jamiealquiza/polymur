@@ -147,6 +147,8 @@ func (p *Pool) AddConn(dest Destination) {
 	p.Conns[dest.Name] = make(chan *string, p.QueueCap)
 	p.Unlock()
 
+	fmt.Printf("XXX queue for %v set to %d\n", dest.Name, cap(p.Conns[dest.Name]))
+
 	// This replicates the destination key setup in
 	// the carbon-cache implementation. It's a string composed of the
 	// (destination IP, instance) tuple. E.g. "('127.0.0.1', 'a')"

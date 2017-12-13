@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"flag"
 	"log"
 	"os"
@@ -44,6 +45,13 @@ func init() {
 	flag.IntVar(&options.metricsFlush, "metrics-flush", 0, "Graphite flush interval for runtime metrics (0 is disabled)")
 	flag.StringVar(&options.distribution, "distribution", "broadcast", "Destination distribution methods: broadcast, hash-route")
 
+	envConfig := os.Getenv("POLYMUR_OUTGOING_QUEUE_CAP")
+	if envConfig != "" {
+		fmt.Printf("XXX queue cap env var set: %s\n", envConfig)
+	} else {
+		fmt.Println("XXX queue cap env var unset")
+	}
+
 	envy.Parse("POLYMUR")
 	flag.Parse()
 }
@@ -63,6 +71,8 @@ func main() {
 	incomingQueue := make(chan []*string, options.incomingQueuecap)
 
 	pool := pool.NewPool()
+
+	fmt.Printf("XXX queue cap config: %d\n", options.outgoingQueuecap)
 
 	// Output writer.
 	if options.console {
