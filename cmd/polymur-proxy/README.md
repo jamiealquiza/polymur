@@ -24,6 +24,8 @@ Polymur-proxy uses [Envy](https://github.com/jamiealquiza/envy) to automatically
 Usage of polymur-proxy:
   -api-key string
         polymur gateway API key [POLYMUR_PROXY_API_KEY]
+  -sign-method
+        API key signing method for api calls ['consul', 'api-gateway'] [POLYMUR_PROXY_SIGN_METHOD] (default 'consul') 
   -cert string
         TLS Certificate [POLYMUR_PROXY_CERT]
   -console-out
@@ -86,5 +88,3 @@ Polymur-gateway validates key and handles request (writes to console since the g
 some.test.data 1337 1469802654
 2016/07/29 14:30:55 Last 5.00s: Received 1 data points | Avg: 0.20/sec.
 </pre>
-
-

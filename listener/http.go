@@ -10,7 +10,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/jamiealquiza/polymur/keysync"
+	"github.com/jamiealquiza/polymur/auth"
 	"github.com/jamiealquiza/polymur/statstracker"
 )
 
@@ -24,7 +24,7 @@ type HTTPListenerConfig struct {
 	Key           string
 	KeyPrefix     bool
 	Stats         *statstracker.Stats
-	Keys          *keysync.APIKeys
+	Authorizer    auth.Authorizer
 }
 
 // HTTPListener accepts connections from a polymur-proxy
@@ -32,7 +32,7 @@ type HTTPListenerConfig struct {
 // batches of compressed messages are passed to /ingest handler.
 func HTTPListener(config *HTTPListenerConfig) {
 	http.HandleFunc("/ingest", func(w http.ResponseWriter, req *http.Request) { ingest(w, req, config) })
-	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) { ping(w, req, config.Keys) })
+	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) { ping(w, req, config.Authorizer) })
 
 	var httpsPort string
 	if config.HTTPSPort != "" {
@@ -74,10 +74,6 @@ func HTTPListener(config *HTTPListenerConfig) {
 // to the IncomingQueue for downstream destination writing.
 func ingest(w http.ResponseWriter, req *http.Request, config *HTTPListenerConfig) {
 
-	// Validate key on every batch.
-	// May or may not be a good idea.
-	requestKey := req.Header.Get("X-Polymur-Key")
-
 	var client string
 	xff := req.Header.Get("x-forwarded-for")
 	if xff != "" {
@@ -86,10 +82,12 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HTTPListenerConfig
 		client = req.RemoteAddr
 	}
 
-	keyName, valid := validateKey(requestKey, config.Keys)
+	// Validate key on every batch.
+	// May or may not be a good idea.
+	keyName, valid := config.Authorizer.Validate(req)
 	if !valid {
 		log.Printf("[client %s] %s is not a valid key\n",
-			client, requestKey)
+			client, config.Authorizer.GetValidationKey(req))
 
 		resp := fmt.Sprintf("invalid key")
 		req.Close = true
@@ -147,9 +145,8 @@ func ingest(w http.ResponseWriter, req *http.Request, config *HTTPListenerConfig
 }
 
 // ping validates a connecting polymur-proxy's API key.
-func ping(w http.ResponseWriter, req *http.Request, keys *keysync.APIKeys) {
-	requestKey := req.Header.Get("X-Polymur-Key")
-	keyName, valid := validateKey(requestKey, keys)
+func ping(w http.ResponseWriter, req *http.Request, a auth.Authorizer) {
+	keyName, valid := a.Validate(req)
 
 	var client string
 	xff := req.Header.Get("x-forwarded-for")
@@ -165,25 +162,11 @@ func ping(w http.ResponseWriter, req *http.Request, keys *keysync.APIKeys) {
 		io.WriteString(w, "key is valid\n")
 	} else {
 		log.Printf("[client %s] %s is not a valid key\n",
-			client, requestKey)
+			client, a.GetValidationKey(req))
 
 		resp := fmt.Sprintf("invalid key")
 		req.Close = true
 		w.WriteHeader(http.StatusUnauthorized)
 		io.WriteString(w, resp)
 	}
-}
-
-// validateKey looks up if a key is registered in Consul
-// and returns the key name and key.
-func validateKey(k string, keys *keysync.APIKeys) (string, bool) {
-	keys.Lock()
-	name, valid := keys.Keys[k]
-	keys.Unlock()
-
-	if valid {
-		return name, true
-	}
-
-	return "", false
 }

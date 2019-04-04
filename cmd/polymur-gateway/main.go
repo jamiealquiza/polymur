@@ -8,14 +8,15 @@ import (
 	"syscall"
 
 	"github.com/jamiealquiza/polymur/api"
-	"github.com/jamiealquiza/polymur/keysync"
-	"github.com/jamiealquiza/polymur/listener"
 	"github.com/jamiealquiza/polymur/output"
 	"github.com/jamiealquiza/polymur/pool"
 	"github.com/jamiealquiza/polymur/statstracker"
 	"github.com/jamiealquiza/runstats"
+	"github.com/jamiealquiza/polymur/auth"
 
 	"github.com/jamiealquiza/envy"
+
+	"github.com/jamiealquiza/polymur/listener"
 )
 
 var (
@@ -55,7 +56,7 @@ func init() {
 	flag.StringVar(&options.cert, "cert", "", "TLS Certificate")
 	flag.StringVar(&options.key, "key", "", "TLS Key")
 	flag.BoolVar(&options.devMode, "dev-mode", false, "Dev mode: disables Consul API key store; uses '123'")
-	flag.BoolVar(&options.keyPrefix, "key-prefix", false, "If enabled, prepends all metrics with the origin polymur-proxy API key's name")
+	flag.BoolVar(&options.keyPrefix, "key-prefix", false, "If enabled, prepends all metrics with the origin polymur-proxy API key's name")
 
 	envy.Parse("POLYMUR_GW")
 	flag.Parse()
@@ -100,14 +101,8 @@ func main() {
 	sentCntr := &statstracker.Stats{}
 	go statstracker.StatsTracker(pool, sentCntr)
 
-	// API key sync service.
-	apiKeys := keysync.NewAPIKeys()
-	if !options.devMode {
-		go keysync.Run(apiKeys)
-	} else {
-		apiKeys.Keys["123"] = "dev"
-		log.Println("Running in dev-mode: API-key set to '123'")
-	}
+	//currently only consul key authorization supported
+	a := auth.NewAuthorizer("consul", options.devMode)
 
 	// HTTP Listener.
 	go listener.HTTPListener(&listener.HTTPListenerConfig{
@@ -119,7 +114,7 @@ func main() {
 		KeyPrefix:     options.keyPrefix,
 		Key:           options.key,
 		Stats:         sentCntr,
-		Keys:          apiKeys,
+		Authorizer:    a,
 	})
 
 	// API listener.
