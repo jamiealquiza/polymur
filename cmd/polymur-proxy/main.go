@@ -8,9 +8,10 @@ import (
 	"syscall"
 
 	"github.com/jamiealquiza/polymur/listener"
-	"github.com/jamiealquiza/polymur/output"
 	"github.com/jamiealquiza/polymur/statstracker"
 	"github.com/jamiealquiza/runstats"
+	"github.com/jamiealquiza/polymur/auth"
+	"github.com/jamiealquiza/polymur/output"
 
 	"github.com/jamiealquiza/envy"
 )
@@ -19,6 +20,7 @@ var (
 	options struct {
 		cert         string
 		apiKey       string
+		authMethod   string
 		gateway      string
 		addr         string
 		statAddr     string
@@ -35,6 +37,7 @@ var (
 func init() {
 	flag.StringVar(&options.cert, "cert", "", "TLS Certificate")
 	flag.StringVar(&options.apiKey, "api-key", "", "polymur gateway API key")
+	flag.StringVar(&options.authMethod, "sign-method", "consul", "API key signing method for api calls ['consul', 'api-gateway']")
 	flag.StringVar(&options.gateway, "gateway", "", "polymur gateway address")
 	flag.StringVar(&options.addr, "listen-addr", "0.0.0.0:2003", "Polymur-proxy listen address")
 	flag.StringVar(&options.statAddr, "stat-addr", "localhost:2020", "runstats listen address")
@@ -75,6 +78,7 @@ func main() {
 				Workers:       options.workers,
 				IncomingQueue: incomingQueue,
 				Verbose:       options.verbose,
+				Signer:        auth.NewSigner(options.authMethod),
 			},
 			ready)
 	}

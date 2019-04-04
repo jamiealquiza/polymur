@@ -12,6 +12,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/jamiealquiza/polymur/auth"
 )
 
 // HTTPWriterConfig holds HTTP output
@@ -19,6 +21,7 @@ import (
 type HTTPWriterConfig struct {
 	Cert          string
 	APIKey        string
+	Signer        auth.Signer
 	Gateway       string
 	IncomingQueue chan []*string
 	Workers       int
@@ -131,13 +134,15 @@ func writeStream(config *HTTPWriterConfig, workerID int) {
 
 // apiPost is a convenience wrapper for submitting requests to
 // a polymur-gateway and returning GwResp's.
+// if you don't need to edit request then just send empty HTTPRequestConfig
 func apiPost(config *HTTPWriterConfig, path string, postData io.Reader) (*GwResp, error) {
 	req, err := http.NewRequest("POST", config.Gateway+path, postData)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("X-polymur-key", config.APIKey)
+	a := config.Signer
+	a.Sign(req, config.APIKey)
 	resp, err := config.client.Do(req)
 	if err != nil {
 		return nil, err
